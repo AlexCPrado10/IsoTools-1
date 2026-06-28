@@ -1,0 +1,24 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Entornos (nunca commitear API keys / credenciales)
+.env
+.env.*
+!.env*.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Obsidian — el vault del cerebro se versiona, pero el estado local del editor no
+cerebro/.obsidian/workspace.json
+cerebro/.obsidian/workspace-mobile.json
+cerebro/.trash/

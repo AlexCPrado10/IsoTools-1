@@ -1,0 +1,11 @@
+# .env.central — Conexión a la API compartida en Railway
+#
+# Pídele al admin del proyecto:
+#   1. La URL pública de la API en Railway (API_BASE_URL).
+#   2. Una API key personal generada para ti (API_KEY).
+#
+# Guarda este archivo en la raíz de tu repo local como `.env.central`
+# y AÑÁDELO a tu `.gitignore`. Nunca lo commits.
+
+API_BASE_URL=https://<tu-api-central>.up.railway.app
+API_KEY=

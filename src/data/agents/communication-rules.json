@@ -1,0 +1,912 @@
+{
+  "version": "1.0",
+  "description": "Reglas de comunicación entre tools de agentes industriales CTRLHACK",
+  "rules": [
+    {
+      "id": "rule-erp-001",
+      "sourceToolId": "sync_erp_data_local",
+      "targetToolId": "get_inventory_status",
+      "event": "ERP_DATA_SYNCED",
+      "protocol": "HTTPS",
+      "topic": "POST /api/erp/sync",
+      "triggerCondition": "always",
+      "description": "Datos ERP locales sincronizados al cloud para consulta de inventario"
+    },
+    {
+      "id": "rule-erp-002",
+      "sourceToolId": "get_inventory_status",
+      "targetToolId": "predict_demand",
+      "event": "INVENTORY_STATUS_READY",
+      "protocol": "MQTT",
+      "topic": "erp/inventory/status",
+      "triggerCondition": "always",
+      "description": "Estado de inventario envía datos al predictor de demanda"
+    },
+    {
+      "id": "rule-erp-003",
+      "sourceToolId": "predict_demand",
+      "targetToolId": "optimize_stock_levels",
+      "event": "DEMAND_FORECAST_READY",
+      "protocol": "MQTT",
+      "topic": "erp/demand/forecast",
+      "triggerCondition": "always",
+      "description": "Predicción de demanda alimenta el optimizador de stock"
+    },
+    {
+      "id": "rule-erp-004",
+      "sourceToolId": "optimize_stock_levels",
+      "targetToolId": "recommend_purchase_orders",
+      "event": "STOCK_OPTIMIZATION_COMPLETE",
+      "protocol": "REST",
+      "topic": "POST /api/erp/recommend-orders",
+      "triggerCondition": "reorderPoint < currentStock",
+      "description": "Niveles optimizados disparan recomendación de órdenes"
+    },
+    {
+      "id": "rule-erp-005",
+      "sourceToolId": "recommend_purchase_orders",
+      "targetToolId": "generate_purchase_order",
+      "event": "ORDER_RECOMMENDED",
+      "protocol": "REST",
+      "topic": "POST /api/erp/generate-order",
+      "triggerCondition": "autoApprove === true",
+      "description": "Recomendación auto-aprobada genera la orden de compra"
+    },
+    {
+      "id": "rule-erp-006",
+      "sourceToolId": "generate_purchase_order",
+      "targetToolId": "push_orders_to_erp",
+      "event": "ORDER_CREATED",
+      "protocol": "MQTT",
+      "topic": "erp/orders/created",
+      "triggerCondition": "always",
+      "description": "Orden creada en cloud se envía al ERP local via Edge"
+    },
+    {
+      "id": "rule-erp-007",
+      "sourceToolId": "forecast_revenue",
+      "targetToolId": "detect_business_anomalies",
+      "event": "FORECAST_READY",
+      "protocol": "MQTT",
+      "topic": "erp/revenue/forecast",
+      "triggerCondition": "always",
+      "description": "Pronóstico de ingresos alimenta el detector de anomalías"
+    },
+    {
+      "id": "rule-erp-008",
+      "sourceToolId": "score_leads",
+      "targetToolId": "predict_sales",
+      "event": "LEADS_SCORED",
+      "protocol": "REST",
+      "topic": "POST /api/crm/predict-sales",
+      "triggerCondition": "score > 70",
+      "description": "Leads de alto puntaje alimentan la predicción de ventas"
+    },
+    {
+      "id": "rule-erp-009",
+      "sourceToolId": "predict_sales",
+      "targetToolId": "automate_followups",
+      "event": "SALES_PREDICTED",
+      "protocol": "MQTT",
+      "topic": "crm/sales/prediction",
+      "triggerCondition": "closeProbability > 0.6",
+      "description": "Alta probabilidad de venta dispara seguimiento automático"
+    },
+    {
+      "id": "rule-cyber-001",
+      "sourceToolId": "monitor_ot_network",
+      "targetToolId": "detect_network_anomalies_local",
+      "event": "TRAFFIC_CAPTURED",
+      "protocol": "Internal",
+      "topic": "edge/network/traffic",
+      "triggerCondition": "always",
+      "description": "Tráfico OT monitorizado pasa al detector de anomalías local"
+    },
+    {
+      "id": "rule-cyber-002",
+      "sourceToolId": "detect_network_anomalies_local",
+      "targetToolId": "block_ip",
+      "event": "ANOMALY_DETECTED",
+      "protocol": "Internal",
+      "topic": "edge/security/block",
+      "triggerCondition": "severity === 'CRITICAL' || severity === 'HIGH'",
+      "description": "Anomalía crítica/alta activa bloqueo inmediato de IP"
+    },
+    {
+      "id": "rule-cyber-003",
+      "sourceToolId": "detect_network_anomalies_local",
+      "targetToolId": "isolate_device",
+      "event": "DEVICE_COMPROMISE_SUSPECTED",
+      "protocol": "Internal",
+      "topic": "edge/security/isolate",
+      "triggerCondition": "anomalyType === 'lateral_movement'",
+      "description": "Movimiento lateral detectado aísla el dispositivo origen"
+    },
+    {
+      "id": "rule-cyber-004",
+      "sourceToolId": "inspect_gateway_traffic",
+      "targetToolId": "detect_anomaly_patterns",
+      "event": "PACKETS_INSPECTED",
+      "protocol": "HTTPS",
+      "topic": "POST /api/security/analyze-patterns",
+      "triggerCondition": "maliciousPayloads > 0",
+      "description": "Payloads sospechosos enviados a análisis de patrones en cloud"
+    },
+    {
+      "id": "rule-cyber-005",
+      "sourceToolId": "detect_anomaly_patterns",
+      "targetToolId": "analyze_network_risk",
+      "event": "PATTERNS_FOUND",
+      "protocol": "MQTT",
+      "topic": "cloud/security/patterns",
+      "triggerCondition": "attackType !== 'none'",
+      "description": "Patrones de ataque identificados disparan análisis de riesgo"
+    },
+    {
+      "id": "rule-cyber-006",
+      "sourceToolId": "analyze_network_risk",
+      "targetToolId": "generate_security_strategy",
+      "event": "RISK_ANALYZED",
+      "protocol": "REST",
+      "topic": "POST /api/security/strategy",
+      "triggerCondition": "riskLevel === 'high' || riskLevel === 'critical'",
+      "description": "Riesgo alto/crítico genera estrategia de seguridad actualizada"
+    },
+    {
+      "id": "rule-cyber-007",
+      "sourceToolId": "generate_security_strategy",
+      "targetToolId": "apply_segmentation",
+      "event": "STRATEGY_GENERATED",
+      "protocol": "MQTT",
+      "topic": "edge/security/segmentation-rules",
+      "triggerCondition": "priorityActions includes 'segmentation'",
+      "description": "Estrategia enviada al edge para aplicar segmentación de red"
+    },
+    {
+      "id": "rule-cyber-008",
+      "sourceToolId": "simulate_attack_scenarios",
+      "targetToolId": "segment_network",
+      "event": "VULNERABILITIES_FOUND",
+      "protocol": "MQTT",
+      "topic": "edge/security/segment",
+      "triggerCondition": "criticalPaths.length > 0",
+      "description": "Rutas críticas encontradas disparan segmentación preventiva"
+    },
+    {
+      "id": "rule-vision-001",
+      "sourceToolId": "capture_video_stream",
+      "targetToolId": "inspect_product_quality",
+      "event": "FRAME_CAPTURED",
+      "protocol": "Internal",
+      "topic": "edge/vision/frame",
+      "triggerCondition": "always",
+      "description": "Cada frame capturado se pasa al inspector de calidad"
+    },
+    {
+      "id": "rule-vision-002",
+      "sourceToolId": "capture_video_stream",
+      "targetToolId": "detect_safety_violations",
+      "event": "FRAME_CAPTURED",
+      "protocol": "Internal",
+      "topic": "edge/vision/safety-frame",
+      "triggerCondition": "zone === 'work_area'",
+      "description": "Frames de zona de trabajo se analizan para violaciones de seguridad"
+    },
+    {
+      "id": "rule-vision-003",
+      "sourceToolId": "capture_video_stream",
+      "targetToolId": "count_items_on_conveyor",
+      "event": "CONVEYOR_FRAME",
+      "protocol": "Internal",
+      "topic": "edge/vision/conveyor-frame",
+      "triggerCondition": "zone === 'conveyor'",
+      "description": "Frames de la cinta se envían al contador de ítems"
+    },
+    {
+      "id": "rule-vision-004",
+      "sourceToolId": "inspect_product_quality",
+      "targetToolId": "analyze_visual_patterns",
+      "event": "DEFECT_FOUND",
+      "protocol": "HTTPS",
+      "topic": "POST /api/vision/patterns",
+      "triggerCondition": "defectFound === true",
+      "description": "Defectos encontrados se envían al análisis de patrones en cloud"
+    },
+    {
+      "id": "rule-vision-005",
+      "sourceToolId": "analyze_visual_patterns",
+      "targetToolId": "train_vision_model",
+      "event": "PATTERN_ANALYSIS_COMPLETE",
+      "protocol": "REST",
+      "topic": "POST /api/vision/retrain",
+      "triggerCondition": "defectTrend === 'worsening'",
+      "description": "Tendencia de empeoramiento dispara reentrenamiento del modelo"
+    },
+    {
+      "id": "rule-vision-006",
+      "sourceToolId": "train_vision_model",
+      "targetToolId": "improve_detection_model",
+      "event": "MODEL_TRAINED",
+      "protocol": "REST",
+      "topic": "POST /api/vision/improve",
+      "triggerCondition": "accuracy > 0.9",
+      "description": "Modelo entrenado se somete a mejora adicional con fine-tuning"
+    },
+    {
+      "id": "rule-aiml-001",
+      "sourceToolId": "collect_vibration_data",
+      "targetToolId": "analyze_vibration_patterns",
+      "event": "VIBRATION_SAMPLES_READY",
+      "protocol": "MQTT",
+      "topic": "cloud/ml/vibration/raw",
+      "triggerCondition": "always",
+      "description": "Datos crudos de vibración enviados a análisis de patrones en cloud"
+    },
+    {
+      "id": "rule-aiml-002",
+      "sourceToolId": "collect_vibration_data",
+      "targetToolId": "run_local_inference",
+      "event": "VIBRATION_SAMPLES_READY",
+      "protocol": "Internal",
+      "topic": "edge/ml/infer",
+      "triggerCondition": "cloudUnavailable === true",
+      "description": "Sin conectividad cloud, inferencia corre localmente en el edge"
+    },
+    {
+      "id": "rule-aiml-003",
+      "sourceToolId": "collect_process_signals",
+      "targetToolId": "detect_real_time_anomalies",
+      "event": "SIGNALS_READY",
+      "protocol": "Internal",
+      "topic": "edge/process/signals",
+      "triggerCondition": "always",
+      "description": "Señales de proceso alimentan la detección de anomalías en tiempo real"
+    },
+    {
+      "id": "rule-aiml-004",
+      "sourceToolId": "detect_real_time_anomalies",
+      "targetToolId": "detect_process_deviation",
+      "event": "ANOMALY_CONFIRMED",
+      "protocol": "HTTPS",
+      "topic": "POST /api/ml/process-deviation",
+      "triggerCondition": "anomalyDetected === true && severity !== 'LOW'",
+      "description": "Anomalía confirmada pasa a análisis de desviación de proceso en cloud"
+    },
+    {
+      "id": "rule-aiml-005",
+      "sourceToolId": "analyze_vibration_patterns",
+      "targetToolId": "predict_machine_failure",
+      "event": "VIBRATION_PATTERN_ANALYZED",
+      "protocol": "MQTT",
+      "topic": "cloud/ml/failure-prediction",
+      "triggerCondition": "severity === 'alert' || severity === 'danger'",
+      "description": "Patrón crítico de vibración dispara predicción de falla"
+    },
+    {
+      "id": "rule-aiml-006",
+      "sourceToolId": "predict_machine_failure",
+      "targetToolId": "generate_digital_twin_model",
+      "event": "FAILURE_PREDICTED",
+      "protocol": "MQTT",
+      "topic": "cloud/ml/twin-update",
+      "triggerCondition": "failureProbability > 0.7",
+      "description": "Alta probabilidad de falla actualiza el modelo del gemelo digital"
+    },
+    {
+      "id": "rule-aiml-007",
+      "sourceToolId": "detect_process_deviation",
+      "targetToolId": "optimize_production_sequence",
+      "event": "DEVIATION_DETECTED",
+      "protocol": "REST",
+      "topic": "POST /api/ml/reoptimize",
+      "triggerCondition": "deviationDetected === true",
+      "description": "Desviación de proceso dispara reoptimización de secuencia"
+    },
+    {
+      "id": "rule-infra-001",
+      "sourceToolId": "collect_sensor_data",
+      "targetToolId": "digitize_analog_signals",
+      "event": "ANALOG_DATA_BUFFERED",
+      "protocol": "Internal",
+      "topic": "edge/infra/analog",
+      "triggerCondition": "signalType === 'analog'",
+      "description": "Datos analógicos del buffer se convierten a formato digital"
+    },
+    {
+      "id": "rule-infra-002",
+      "sourceToolId": "digitize_analog_signals",
+      "targetToolId": "orchestrate_edge_nodes",
+      "event": "SIGNAL_DIGITIZED",
+      "protocol": "MQTT",
+      "topic": "edge/infra/digital-signals",
+      "triggerCondition": "always",
+      "description": "Señal digitalizada disponible para orquestación entre nodos"
+    },
+    {
+      "id": "rule-infra-003",
+      "sourceToolId": "manage_edge_devices",
+      "targetToolId": "orchestrate_edge_nodes",
+      "event": "DEVICE_STATE_CHANGED",
+      "protocol": "Internal",
+      "topic": "edge/infra/device-state",
+      "triggerCondition": "operation !== 'list'",
+      "description": "Cambio de estado de dispositivo reportado al orquestador"
+    },
+    {
+      "id": "rule-infra-004",
+      "sourceToolId": "orchestrate_edge_nodes",
+      "targetToolId": "monitor_edge_health",
+      "event": "NODE_STATUS_REPORT",
+      "protocol": "HTTPS",
+      "topic": "POST /api/infra/health",
+      "triggerCondition": "always",
+      "description": "Orquestador reporta estado de nodos al monitor en cloud"
+    },
+    {
+      "id": "rule-infra-005",
+      "sourceToolId": "monitor_edge_health",
+      "targetToolId": "manage_device_registry",
+      "event": "HEALTH_REPORT_READY",
+      "protocol": "REST",
+      "topic": "PUT /api/infra/registry",
+      "triggerCondition": "nodesOffline > 0",
+      "description": "Nodos offline actualizan su estado en el registro central"
+    },
+    {
+      "id": "rule-infra-006",
+      "sourceToolId": "manage_device_registry",
+      "targetToolId": "deploy_edge_configuration",
+      "event": "NEW_DEVICE_REGISTERED",
+      "protocol": "MQTT",
+      "topic": "cloud/infra/deploy-config",
+      "triggerCondition": "operation === 'register'",
+      "description": "Nuevo dispositivo registrado recibe su configuración inicial"
+    },
+    {
+      "id": "rule-infra-007",
+      "sourceToolId": "deploy_edge_configuration",
+      "targetToolId": "update_edge_agents",
+      "event": "CONFIG_DEPLOYED",
+      "protocol": "MQTT",
+      "topic": "cloud/infra/update-agents",
+      "triggerCondition": "agentUpdateRequired === true",
+      "description": "Configuración desplegada incluye actualización de agentes"
+    },
+    {
+      "id": "rule-infra-008",
+      "sourceToolId": "monitor_energy_consumption",
+      "targetToolId": "execute_local_control_action",
+      "event": "PEAK_DEMAND_DETECTED",
+      "protocol": "Internal",
+      "topic": "edge/infra/control",
+      "triggerCondition": "peakDemand === true",
+      "description": "Demanda pico detectada activa acción de control local"
+    },
+    {
+      "id": "rule-prod-001",
+      "sourceToolId": "collect_production_data",
+      "targetToolId": "track_machine_state",
+      "event": "PRODUCTION_DATA_CAPTURED",
+      "protocol": "Internal",
+      "topic": "edge/prod/machine-data",
+      "triggerCondition": "always",
+      "description": "Datos de producción alimentan el rastreador de estado de máquina"
+    },
+    {
+      "id": "rule-prod-002",
+      "sourceToolId": "track_machine_state",
+      "targetToolId": "detect_idle_time",
+      "event": "MACHINE_STATE_UPDATED",
+      "protocol": "Internal",
+      "topic": "edge/prod/machine-state",
+      "triggerCondition": "state === 'idle' || state === 'fault'",
+      "description": "Estado idle/fault dispara detección de tiempo muerto"
+    },
+    {
+      "id": "rule-prod-003",
+      "sourceToolId": "detect_idle_time",
+      "targetToolId": "optimize_production_flow",
+      "event": "IDLE_TIME_DETECTED",
+      "protocol": "HTTPS",
+      "topic": "POST /api/prod/optimize-flow",
+      "triggerCondition": "idleDurationSeconds > 300",
+      "description": "Tiempo muerto > 5min dispara optimización de flujo en cloud"
+    },
+    {
+      "id": "rule-prod-004",
+      "sourceToolId": "detect_idle_time",
+      "targetToolId": "simulate_bottlenecks",
+      "event": "IDLE_PATTERN_DETECTED",
+      "protocol": "HTTPS",
+      "topic": "POST /api/prod/simulate-bottleneck",
+      "triggerCondition": "idleCount > 3",
+      "description": "Patrón recurrente de paros dispara simulación de cuellos de botella"
+    },
+    {
+      "id": "rule-prod-005",
+      "sourceToolId": "optimize_production_flow",
+      "targetToolId": "execute_production_adjustment",
+      "event": "FLOW_OPTIMIZED",
+      "protocol": "MQTT",
+      "topic": "edge/prod/adjustments",
+      "triggerCondition": "oeeDelta > 0.05",
+      "description": "Mejora de OEE > 5% aplica ajustes directamente en la máquina"
+    },
+    {
+      "id": "rule-prod-006",
+      "sourceToolId": "identify_idle_time_patterns",
+      "targetToolId": "plan_production_automatically",
+      "event": "PATTERNS_IDENTIFIED",
+      "protocol": "REST",
+      "topic": "POST /api/prod/replan",
+      "triggerCondition": "always",
+      "description": "Patrones de tiempo muerto alimentan la planificación automática"
+    },
+    {
+      "id": "rule-twin-001",
+      "sourceToolId": "collect_sensor_data",
+      "targetToolId": "feed_real_time_data_to_twin",
+      "event": "SENSOR_DATA_READY",
+      "protocol": "MQTT",
+      "topic": "edge/twin/sensor-data",
+      "triggerCondition": "twinEnabled === true",
+      "description": "Datos de sensores transmitidos en tiempo real al gemelo digital"
+    },
+    {
+      "id": "rule-twin-002",
+      "sourceToolId": "feed_real_time_data_to_twin",
+      "targetToolId": "generate_digital_twin",
+      "event": "TWIN_DATA_UPDATED",
+      "protocol": "HTTPS",
+      "topic": "POST /api/twin/update",
+      "triggerCondition": "recordsSent > 0",
+      "description": "Datos del piso de planta actualizan el gemelo digital"
+    },
+    {
+      "id": "rule-twin-003",
+      "sourceToolId": "generate_digital_twin",
+      "targetToolId": "simulate_operations",
+      "event": "TWIN_READY",
+      "protocol": "MQTT",
+      "topic": "cloud/twin/simulate",
+      "triggerCondition": "syncStatus === 'live'",
+      "description": "Gemelo sincronizado ejecuta simulaciones continuas de operaciones"
+    },
+    {
+      "id": "rule-twin-004",
+      "sourceToolId": "simulate_operations",
+      "targetToolId": "optimize_system_performance",
+      "event": "SIMULATION_COMPLETE",
+      "protocol": "REST",
+      "topic": "POST /api/twin/optimize",
+      "triggerCondition": "projectedImprovement > 0.02",
+      "description": "Resultado de simulación con mejora > 2% activa optimización global"
+    },
+
+    {
+      "id": "rule-maint-001",
+      "sourceToolId": "execute_condition_monitoring",
+      "targetToolId": "manage_work_orders",
+      "event": "CONDITION_DEGRADED",
+      "protocol": "MQTT",
+      "topic": "maintenance/condition/alert",
+      "triggerCondition": "conditionIndex < 60 OR recommendedAction IN ['inspect','repair_now']",
+      "description": "Condición de activo degradada genera orden de trabajo automáticamente"
+    },
+    {
+      "id": "rule-maint-002",
+      "sourceToolId": "manage_work_orders",
+      "targetToolId": "manage_spare_parts",
+      "event": "WORK_ORDER_APPROVED",
+      "protocol": "REST",
+      "topic": "POST /api/maintenance/parts/reserve",
+      "triggerCondition": "status == 'in_progress'",
+      "description": "Orden de trabajo aprobada verifica y reserva repuestos necesarios"
+    },
+    {
+      "id": "rule-maint-003",
+      "sourceToolId": "calculate_mtbf_mttr",
+      "targetToolId": "schedule_preventive_maintenance",
+      "event": "RELIABILITY_DATA_UPDATED",
+      "protocol": "REST",
+      "topic": "POST /api/maintenance/pm/schedule",
+      "triggerCondition": "trend == 'degrading' OR mtbfHours < baseline",
+      "description": "MTBF actualizado con tendencia a degradación reajusta plan de PM"
+    },
+    {
+      "id": "rule-maint-004",
+      "sourceToolId": "analyze_failure_modes",
+      "targetToolId": "schedule_preventive_maintenance",
+      "event": "FMEA_CRITICAL_FOUND",
+      "protocol": "REST",
+      "topic": "POST /api/maintenance/pm/schedule",
+      "triggerCondition": "criticalItems > 0",
+      "description": "Modos de falla críticos detectados activan revisión del plan de mantenimiento preventivo"
+    },
+    {
+      "id": "rule-maint-005",
+      "sourceToolId": "generate_maintenance_kpis",
+      "targetToolId": "track_asset_lifecycle",
+      "event": "MAINTENANCE_KPIS_READY",
+      "protocol": "MQTT",
+      "topic": "maintenance/kpis/updated",
+      "triggerCondition": "always",
+      "description": "KPIs de mantenimiento alimentan el modelo de ciclo de vida del activo"
+    },
+
+    {
+      "id": "rule-scada-001",
+      "sourceToolId": "monitor_scada_tags",
+      "targetToolId": "execute_pid_control",
+      "event": "PROCESS_VARIABLE_UPDATED",
+      "protocol": "OPC-UA",
+      "topic": "ns=2;s=Plant/PV/Update",
+      "triggerCondition": "quality == 'good'",
+      "description": "Tags de proceso actualizados alimentan el lazo PID con variable de proceso actual"
+    },
+    {
+      "id": "rule-scada-002",
+      "sourceToolId": "monitor_scada_tags",
+      "targetToolId": "trigger_process_alarm",
+      "event": "TAG_LIMIT_EXCEEDED",
+      "protocol": "OPC-UA",
+      "topic": "ns=2;s=Plant/Alarm/Check",
+      "triggerCondition": "value > hiLimit OR value < loLimit",
+      "description": "Tag de proceso fuera de límites dispara evaluación de alarma"
+    },
+    {
+      "id": "rule-scada-003",
+      "sourceToolId": "trigger_process_alarm",
+      "targetToolId": "acknowledge_alarm",
+      "event": "ALARM_ACTIVATED",
+      "protocol": "MQTT",
+      "topic": "scada/alarms/active",
+      "triggerCondition": "priority IN ['critical','high']",
+      "description": "Alarma crítica o alta activa la notificación al operador para reconocimiento"
+    },
+    {
+      "id": "rule-scada-004",
+      "sourceToolId": "execute_pid_control",
+      "targetToolId": "log_process_historian",
+      "event": "PID_OUTPUT_UPDATED",
+      "protocol": "MQTT",
+      "topic": "scada/historian/write",
+      "triggerCondition": "always",
+      "description": "Salida del controlador PID y PV se registran continuamente en el historiador"
+    },
+    {
+      "id": "rule-scada-005",
+      "sourceToolId": "log_process_historian",
+      "targetToolId": "analyze_control_loop_performance",
+      "event": "HISTORIAN_BATCH_READY",
+      "protocol": "REST",
+      "topic": "POST /api/scada/loop-analysis",
+      "triggerCondition": "recordsStored > 1000",
+      "description": "Datos históricos acumulados se envían al cloud para análisis de desempeño de lazos"
+    },
+
+    {
+      "id": "rule-qual-001",
+      "sourceToolId": "collect_quality_measurements",
+      "targetToolId": "calculate_control_charts",
+      "event": "MEASUREMENTS_CAPTURED",
+      "protocol": "REST",
+      "topic": "POST /api/quality/spc/update",
+      "triggerCondition": "defectsFound >= 0",
+      "description": "Mediciones de calidad capturadas actualizan cartas de control SPC en tiempo real"
+    },
+    {
+      "id": "rule-qual-002",
+      "sourceToolId": "calculate_control_charts",
+      "targetToolId": "detect_out_of_control_signals",
+      "event": "CHART_POINTS_UPDATED",
+      "protocol": "REST",
+      "topic": "POST /api/quality/spc/detect",
+      "triggerCondition": "always",
+      "description": "Cartas de control actualizadas ejecutan detección de señales fuera de control"
+    },
+    {
+      "id": "rule-qual-003",
+      "sourceToolId": "detect_out_of_control_signals",
+      "targetToolId": "manage_nonconformances",
+      "event": "OUT_OF_CONTROL_DETECTED",
+      "protocol": "REST",
+      "topic": "POST /api/quality/nc/create",
+      "triggerCondition": "violationsDetected == true",
+      "description": "Señal fuera de control detectada abre automáticamente una no conformidad"
+    },
+    {
+      "id": "rule-qual-004",
+      "sourceToolId": "manage_nonconformances",
+      "targetToolId": "generate_8d_report",
+      "event": "NC_REQUIRES_8D",
+      "protocol": "REST",
+      "topic": "POST /api/quality/8d/generate",
+      "triggerCondition": "severity IN ['major','critical']",
+      "description": "No conformidad mayor o crítica dispara generación automática de reporte 8D"
+    },
+    {
+      "id": "rule-qual-005",
+      "sourceToolId": "calculate_cpk_ppk",
+      "targetToolId": "manage_product_specs",
+      "event": "CAPABILITY_BELOW_TARGET",
+      "protocol": "REST",
+      "topic": "POST /api/quality/specs/review",
+      "triggerCondition": "cpk < 1.33 OR status == 'not_capable'",
+      "description": "Capacidad de proceso por debajo del objetivo activa revisión de especificaciones"
+    },
+
+    {
+      "id": "rule-energy-001",
+      "sourceToolId": "monitor_energy_meters",
+      "targetToolId": "calculate_energy_kpis",
+      "event": "ENERGY_READING_AVAILABLE",
+      "protocol": "MQTT",
+      "topic": "energy/meters/reading",
+      "triggerCondition": "always",
+      "description": "Lectura de medidores disponible actualiza cálculo de indicadores EnPI"
+    },
+    {
+      "id": "rule-energy-002",
+      "sourceToolId": "calculate_energy_kpis",
+      "targetToolId": "detect_energy_waste",
+      "event": "ENPI_CALCULATED",
+      "protocol": "REST",
+      "topic": "POST /api/energy/waste/detect",
+      "triggerCondition": "vsBaselinePercent > 5",
+      "description": "EnPI supera línea base en 5% activa análisis de desperdicios energéticos"
+    },
+    {
+      "id": "rule-energy-003",
+      "sourceToolId": "detect_energy_waste",
+      "targetToolId": "optimize_energy_loads",
+      "event": "ENERGY_WASTE_FOUND",
+      "protocol": "REST",
+      "topic": "POST /api/energy/loads/optimize",
+      "triggerCondition": "totalSavingsOpportunity > 1000",
+      "description": "Desperdicios detectados con ahorro potencial > 1000 kWh activan optimización de cargas"
+    },
+    {
+      "id": "rule-energy-004",
+      "sourceToolId": "calculate_energy_kpis",
+      "targetToolId": "calculate_carbon_footprint",
+      "event": "CONSUMPTION_DATA_READY",
+      "protocol": "REST",
+      "topic": "POST /api/energy/carbon/calculate",
+      "triggerCondition": "periodDays >= 30",
+      "description": "Datos de consumo mensual disponibles actualizan cálculo de huella de carbono"
+    },
+    {
+      "id": "rule-energy-005",
+      "sourceToolId": "calculate_energy_kpis",
+      "targetToolId": "generate_iso50001_report",
+      "event": "ENPI_PERIOD_CLOSED",
+      "protocol": "REST",
+      "topic": "POST /api/energy/iso50001/report",
+      "triggerCondition": "periodDays == 90",
+      "description": "Cierre de periodo trimestral genera reporte de revisión ISO 50001 automáticamente"
+    },
+
+    {
+      "id": "rule-hse-001",
+      "sourceToolId": "monitor_gas_sensors",
+      "targetToolId": "report_safety_incident",
+      "event": "GAS_ALARM_TRIGGERED",
+      "protocol": "MQTT",
+      "topic": "hse/gas/alarm",
+      "triggerCondition": "status IN ['alarm','evacuation']",
+      "description": "Alarma de gas activa reporte automático de incidente y notificación de emergencia"
+    },
+    {
+      "id": "rule-hse-002",
+      "sourceToolId": "report_safety_incident",
+      "targetToolId": "investigate_root_cause_hse",
+      "event": "INCIDENT_REPORTED",
+      "protocol": "REST",
+      "topic": "POST /api/hse/investigate",
+      "triggerCondition": "investigationRequired == true",
+      "description": "Incidente que requiere investigación abre automáticamente flujo de análisis de causa raíz"
+    },
+    {
+      "id": "rule-hse-003",
+      "sourceToolId": "investigate_root_cause_hse",
+      "targetToolId": "run_hazop_analysis",
+      "event": "ROOT_CAUSE_SYSTEMIC",
+      "protocol": "REST",
+      "topic": "POST /api/hse/hazop/run",
+      "triggerCondition": "similarIncidentRisk IN ['medium','high']",
+      "description": "Causa raíz sistémica con riesgo medio/alto activa HAZOP del nodo de proceso afectado"
+    },
+    {
+      "id": "rule-hse-004",
+      "sourceToolId": "run_hazop_analysis",
+      "targetToolId": "calculate_sil_level",
+      "event": "HAZOP_UNACCEPTABLE_RISK",
+      "protocol": "REST",
+      "topic": "POST /api/hse/sil/calculate",
+      "triggerCondition": "unacceptableRisks > 0",
+      "description": "Riesgo inaceptable en HAZOP activa cálculo de nivel SIL requerido"
+    },
+    {
+      "id": "rule-hse-005",
+      "sourceToolId": "manage_work_permits",
+      "targetToolId": "track_safety_kpis",
+      "event": "PERMIT_CLOSED",
+      "protocol": "REST",
+      "topic": "POST /api/hse/kpis/update",
+      "triggerCondition": "status == 'closed'",
+      "description": "Cierre de permiso de trabajo actualiza los KPIs de seguridad del período"
+    },
+
+    {
+      "id": "rule-scm-001",
+      "sourceToolId": "scan_incoming_material",
+      "targetToolId": "manage_warehouse_wms",
+      "event": "MATERIAL_RECEIVED",
+      "protocol": "REST",
+      "topic": "POST /api/scm/wms/receive",
+      "triggerCondition": "qualityHoldRequired == false",
+      "description": "Material escaneado sin retención de calidad pasa directo a gestión de almacén WMS"
+    },
+    {
+      "id": "rule-scm-002",
+      "sourceToolId": "manage_warehouse_wms",
+      "targetToolId": "calculate_scm_kpis",
+      "event": "WMS_OPERATION_COMPLETE",
+      "protocol": "REST",
+      "topic": "POST /api/scm/kpis/update",
+      "triggerCondition": "operation IN ['ship','receive']",
+      "description": "Operación de recepción o despacho actualiza los KPIs SCOR de la cadena de suministro"
+    },
+    {
+      "id": "rule-scm-003",
+      "sourceToolId": "track_shipments",
+      "targetToolId": "predict_supply_disruptions",
+      "event": "SHIPMENT_DELAYED",
+      "protocol": "MQTT",
+      "topic": "scm/shipments/delay",
+      "triggerCondition": "delayDays > 2",
+      "description": "Envío con retraso > 2 días activa análisis predictivo de disrupciones de suministro"
+    },
+    {
+      "id": "rule-scm-004",
+      "sourceToolId": "predict_supply_disruptions",
+      "targetToolId": "optimize_delivery_routes",
+      "event": "DISRUPTION_RISK_HIGH",
+      "protocol": "REST",
+      "topic": "POST /api/scm/routes/reoptimize",
+      "triggerCondition": "disruptionRisk IN ['high','critical']",
+      "description": "Riesgo alto de disrupción activa reoptimización de rutas con proveedores alternativos"
+    },
+    {
+      "id": "rule-scm-005",
+      "sourceToolId": "manage_supplier_scorecard",
+      "targetToolId": "generate_delivery_report",
+      "event": "SCORECARD_UPDATED",
+      "protocol": "REST",
+      "topic": "POST /api/scm/reports/delivery",
+      "triggerCondition": "classification IN ['conditional','disqualified']",
+      "description": "Proveedor clasificado como condicional o descalificado genera reporte de desempeño de entrega"
+    },
+    {
+        "id": "rule-pkg-001",
+        "sourceToolId": "inspect_product_quality",
+        "targetToolId": "manage_nonconformances",
+        "event": "DEFECT_FOUND",
+        "protocol": "REST",
+        "topic": "POST /api/quality/nc/create",
+        "triggerCondition": "defectFound == true",
+        "description": "Defecto confirmado en inspección abre una no conformidad"
+  },
+    {
+        "id": "rule-pkg-002",
+        "sourceToolId": "analyze_failure_modes",
+        "targetToolId": "manage_nonconformances",
+        "event": "FMEA_CRITICAL_FOUND",
+        "protocol": "REST",
+        "topic": "POST /api/quality/nc/create",
+        "triggerCondition": "criticalItems > 0",
+        "description": "Modo de falla crítico (FMEA) levanta una no conformidad preventiva"
+  },
+    {
+        "id": "rule-pkg-003",
+        "sourceToolId": "generate_8d_report",
+        "targetToolId": "automate_followups",
+        "event": "8D_REPORT_ISSUED",
+        "protocol": "REST",
+        "topic": "POST /api/quality/followups",
+        "triggerCondition": "always",
+        "description": "Reporte 8D emitido agenda seguimientos hasta el cierre de la acción"
+  },
+    {
+        "id": "rule-pkg-004",
+        "sourceToolId": "manage_device_registry",
+        "targetToolId": "run_msa_analysis",
+        "event": "NEW_DEVICE_REGISTERED",
+        "protocol": "REST",
+        "topic": "POST /api/quality/msa/run",
+        "triggerCondition": "operation == 'register'",
+        "description": "Equipo de medición registrado dispara estudio MSA (Gage R&R)"
+  },
+    {
+        "id": "rule-pkg-005",
+        "sourceToolId": "run_msa_analysis",
+        "targetToolId": "calculate_control_charts",
+        "event": "MSA_VALIDATED",
+        "protocol": "REST",
+        "topic": "POST /api/quality/spc/update",
+        "triggerCondition": "verdict == 'acceptable'",
+        "description": "Sistema de medición validado habilita el cálculo confiable de cartas de control"
+  },
+    {
+        "id": "rule-pkg-006",
+        "sourceToolId": "collect_quality_measurements",
+        "targetToolId": "calculate_cpk_ppk",
+        "event": "MEASUREMENTS_CAPTURED",
+        "protocol": "REST",
+        "topic": "POST /api/quality/capability",
+        "triggerCondition": "defectsFound >= 0",
+        "description": "Mediciones capturadas alimentan el cálculo de capacidad de proceso (Cpk/Ppk)"
+  },
+    {
+        "id": "rule-pkg-007",
+        "sourceToolId": "manage_product_specs",
+        "targetToolId": "collect_quality_measurements",
+        "event": "PRODUCT_SPEC_UPDATED",
+        "protocol": "REST",
+        "topic": "POST /api/quality/measurements",
+        "triggerCondition": "always",
+        "description": "Spec actualizada redefine el plan de inspección y la captura de mediciones"
+  },
+    {
+        "id": "rule-pkg-008",
+        "sourceToolId": "compare_planned_vs_actual",
+        "targetToolId": "generate_kpis",
+        "event": "PRODUCTION_VARIANCE_DETECTED",
+        "protocol": "REST",
+        "topic": "POST /api/mgmt/kpis",
+        "triggerCondition": "always",
+        "description": "Variación plan vs real alimenta el tablero de KPIs de Revisión por Dirección"
+  },
+    {
+        "id": "rule-pkg-009",
+        "sourceToolId": "compare_planned_vs_actual",
+        "targetToolId": "detect_business_anomalies",
+        "event": "PRODUCTION_VARIANCE_DETECTED",
+        "protocol": "REST",
+        "topic": "POST /api/mgmt/anomalies",
+        "triggerCondition": "always",
+        "description": "Variación de producción se envía al detector de anomalías de negocio"
+  },
+    {
+        "id": "rule-pkg-010",
+        "sourceToolId": "detect_business_anomalies",
+        "targetToolId": "generate_kpis",
+        "event": "BUSINESS_ANOMALY_DETECTED",
+        "protocol": "REST",
+        "topic": "POST /api/mgmt/kpis",
+        "triggerCondition": "criticalCount > 0",
+        "description": "Anomalía de negocio crítica se refleja en los KPIs de dirección"
+  },
+    {
+        "id": "rule-pkg-011",
+        "sourceToolId": "generate_kpis",
+        "targetToolId": "track_project_progress",
+        "event": "KPI_REPORT_GENERATED",
+        "protocol": "REST",
+        "topic": "POST /api/mgmt/progress",
+        "triggerCondition": "always",
+        "description": "KPIs generados actualizan el avance del proyecto de implementación ISO"
+  },
+    {
+        "id": "rule-pkg-012",
+        "sourceToolId": "track_project_progress",
+        "targetToolId": "automate_followups",
+        "event": "PROJECT_AT_RISK",
+        "protocol": "REST",
+        "topic": "POST /api/mgmt/followups",
+        "triggerCondition": "status == 'at_risk'",
+        "description": "Proyecto en riesgo agenda seguimientos automáticos con los responsables"
+  }
+  ]
+}

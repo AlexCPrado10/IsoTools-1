@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arquitectura de Comunicación entre Tools — Plataforma Industrial</title>
+<style>
+:root{
+  --bg:#030B1A;--bl:#2563EB;--bll:#60A5FA;--pu:#7C3AED;--pul:#A78BFA;
+  --gr:#10B981;--grl:#34D399;--or:#F59E0B;--re:#F87171;--cy:#22D3EE;
+  --ga:#94A3B8;--te:#E2E8F0;--ca:#0F1F3D;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);font-family:'IBM Plex Sans','Inter','Segoe UI',system-ui,sans-serif;color:var(--te);scroll-behavior:smooth}
+.grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(37,99,235,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(37,99,235,.05) 1px,transparent 1px);
+  background-size:60px 60px}
+.scan{position:fixed;left:0;right:0;height:2px;z-index:50;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(96,165,250,.2),transparent);
+  animation:scan 8s linear infinite}
+@keyframes scan{from{top:0}to{top:100%}}
+
+.scene{position:relative;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:8vh 6vw 6vh;
+  min-height:100vh;z-index:1;border-bottom:1px solid rgba(37,99,235,.12)}
+
+.ttl{font-size:clamp(28px,4.5vw,64px);font-weight:900;text-align:center;
+  background:linear-gradient(135deg,var(--bll),var(--pul),var(--grl));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1.5vh}
+.stl{font-size:clamp(18px,2.6vw,36px);font-weight:700;text-align:center;
+  background:linear-gradient(135deg,var(--bll),var(--pul));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2vh}
+.sub{font-size:clamp(12px,1.3vw,18px);color:#94A3B8;text-align:center;margin-bottom:3vh;max-width:900px}
+
+.tag{display:inline-block;padding:.4vh 1.2vw;border-radius:20px;font-size:11px;font-weight:700;
+  letter-spacing:1px;background:rgba(37,99,235,.15);color:var(--bll);border:1px solid rgba(96,165,250,.3);margin-bottom:2vh}
+
+.card{background:rgba(15,31,61,.7);border:1px solid rgba(96,165,250,.15);border-radius:12px;
+  padding:2vh 2vw;margin:1vh 0;backdrop-filter:blur(8px)}
+.card h3{font-size:clamp(15px,1.5vw,22px);color:var(--bll);margin-bottom:1vh;font-weight:700}
+.card p{font-size:clamp(12px,1.1vw,15px);color:#CBD5E1;line-height:1.6}
+.card code{background:rgba(0,0,0,.4);padding:2px 6px;border-radius:4px;color:var(--cy);font-size:.9em;font-family:'JetBrains Mono',monospace}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:2vw;width:100%;max-width:1200px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5vw;width:100%;max-width:1300px}
+@media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
+
+.flow{font-family:'JetBrains Mono','Courier New',monospace;background:rgba(0,0,0,.5);
+  border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:2vh 2vw;
+  font-size:clamp(10px,.9vw,13px);line-height:1.7;color:#94A3B8;white-space:pre;overflow-x:auto;max-width:100%}
+.flow .em{color:var(--grl);font-weight:700}
+.flow .ev{color:var(--cy)}
+.flow .fn{color:var(--pul)}
+.flow .ok{color:var(--grl)}
+.flow .bad{color:var(--re)}
+
+.codeblock{font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.55);
+  border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:1.5vh 1.5vw;
+  font-size:clamp(10px,.95vw,14px);line-height:1.5;color:#E2E8F0;
+  white-space:pre;overflow-x:auto;text-align:left;width:100%;max-width:1000px;margin:1vh 0}
+.codeblock .k{color:var(--pul)}.codeblock .s{color:var(--grl)}
+.codeblock .c{color:#64748B;font-style:italic}.codeblock .n{color:var(--or)}
+
+.kpi{display:flex;flex-wrap:wrap;gap:1.5vw;justify-content:center;margin-top:2vh}
+.kp{padding:1.5vh 2vw;border-radius:12px;background:rgba(15,31,61,.9);
+  border:1px solid rgba(124,58,237,.3);text-align:center;min-width:140px}
+.kv{font-size:clamp(22px,2.6vw,40px);font-weight:800;color:var(--pul)}
+.kl{font-size:11px;color:#64748B;margin-top:.4vh;letter-spacing:.5px}
+
+.steps{counter-reset:step;width:100%;max-width:1000px}
+.step{counter-increment:step;display:flex;gap:2vw;align-items:flex-start;margin:1.5vh 0;
+  background:rgba(15,31,61,.55);border-left:4px solid var(--pu);border-radius:8px;padding:1.5vh 1.5vw}
+.step::before{content:counter(step);min-width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--pu),var(--bl));display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:20px;color:#fff}
+.step .stxt h4{font-size:clamp(13px,1.3vw,18px);color:var(--grl);margin-bottom:.5vh;font-weight:700}
+.step .stxt p{font-size:clamp(11px,1vw,14px);color:#CBD5E1;line-height:1.6}
+.step .stxt code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:3px;color:var(--cy);font-family:'JetBrains Mono',monospace;font-size:.92em}
+
+.nav{position:fixed;top:1vh;right:1.5vw;z-index:60;display:flex;gap:.5vw;background:rgba(3,11,26,.85);
+  padding:.7vh 1vw;border-radius:24px;border:1px solid rgba(96,165,250,.2);backdrop-filter:blur(10px);
+  font-size:11px}
+.nav a{color:#94A3B8;text-decoration:none;padding:.3vh .7vw;border-radius:14px;transition:.2s}
+.nav a:hover{background:rgba(96,165,250,.15);color:var(--bll)}
+
+.tbl{width:100%;max-width:1100px;border-collapse:collapse;background:rgba(15,31,61,.6);
+  border-radius:10px;overflow:hidden;margin:1vh 0;font-size:clamp(11px,1vw,14px)}
+.tbl th,.tbl td{padding:1vh 1.2vw;text-align:left;border-bottom:1px solid rgba(96,165,250,.1)}
+.tbl th{background:rgba(37,99,235,.2);color:var(--bll);font-weight:700;letter-spacing:.5px}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td code{background:rgba(0,0,0,.4);padding:1px 6px;border-radius:3px;color:var(--cy);font-family:'JetBrains Mono',monospace}
+
+.divider{height:1px;width:60%;margin:3vh 0;background:linear-gradient(90deg,transparent,var(--pu),transparent)}
+
+.cta{padding:1.2vh 2.5vw;background:linear-gradient(135deg,var(--bl),var(--pu));
+  border-radius:30px;color:#fff;font-weight:700;font-size:clamp(12px,1.2vw,16px);
+  display:inline-block;margin-top:2vh;box-shadow:0 8px 24px rgba(124,58,237,.4)}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="scan"></div>
+
+<nav class="nav">
+  <a href="#s1">Intro</a>
+  <a href="#s2">Problema</a>
+  <a href="#s3">Decisión</a>
+  <a href="#s4">Flujo</a>
+  <a href="#s5">Piezas</a>
+  <a href="#s6">Handler</a>
+  <a href="#s7">Reglas</a>
+  <a href="#s8">Placeholder</a>
+  <a href="#s9">Roadmap</a>
+</nav>
+
+<!-- ─── SCENE 1 ─── -->
+<section class="scene" id="s1">
+  <span class="tag">ARQUITECTURA · v2.0</span>
+  <h1 class="ttl">Comunicación entre Tools</h1>
+  <h2 class="stl">Push In-Process · Event Bus · 137 Handlers</h2>
+  <p class="sub">Cómo conectar todas las tools del sistema industrial para que reaccionen unas a otras sin acoplarse, sin redes innecesarias y sin orquestadores complejos.</p>
+  <div class="kpi">
+    <div class="kp"><div class="kv">137</div><div class="kl">TOOLS</div></div>
+    <div class="kp"><div class="kv">14</div><div class="kl">AGENTES</div></div>
+    <div class="kp"><div class="kv">10</div><div class="kl">NORMAS ISO</div></div>
+    <div class="kp"><div class="kv">1</div><div class="kl">API CENTRAL</div></div>
+  </div>
+</section>
+
+<!-- ─── SCENE 2 — Problema ─── -->
+<section class="scene" id="s2">
+  <span class="tag">EL PROBLEMA</span>
+  <h2 class="ttl">137 tools sin comunicación</h2>
+  <p class="sub">Hoy las tools existen como catálogo (<code>tools.json</code>) pero ninguna ejecuta nada cuando otra produce un evento. El sistema es un logger ISO con dashboard, no una plataforma colaborativa.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Lo que ya funciona ✓</h3>
+      <p>• Ingesta de eventos vía <code>POST /api/v1/events</code><br>
+         • Validación AJV contra <code>event-standard.json</code><br>
+         • Persistencia en <code>industrial_events</code><br>
+         • Dashboard con KPIs<br>
+         • Reporte ISO con 10 normas<br>
+         • Catálogo de 137 tools y reglas de comunicación</p>
+    </div>
+    <div class="card" style="border-color:rgba(248,113,113,.3)">
+      <h3 style="color:var(--re)">Lo que falta ✗</h3>
+      <p>• Ejecutor que active la regla de <code>communication-rules.json</code><br>
+         • Handlers reales por cada tool<br>
+         • Trazabilidad de cadenas causales (correlation_id)<br>
+         • Cola de errores (dead-letter)<br>
+         • Fan-out automático tool→tools</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SCENE 3 — Decisión arquitectónica ─── -->
+<section class="scene" id="s3">
+  <span class="tag">LA DECISIÓN</span>
+  <h2 class="ttl">Push In-Process</h2>
+  <p class="sub">Hay dos ejes independientes: <b>cómo</b> se entera una tool de un evento (pull / push), y <b>dónde</b> vive el código (microservicio / in-process). Elegimos push + in-process.</p>
+
+  <table class="tbl">
+    <tr><th></th><th>Microservicio</th><th>In-process ✓</th></tr>
+    <tr><td><b>Pull</b></td><td>tool consulta API por HTTP</td><td>worker consulta DB y llama función</td></tr>
+    <tr><td><b>Push ✓</b></td><td>API hace POST a URL de la tool</td><td><span style="color:var(--grl);font-weight:700">bus llama handler directamente</span></td></tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>✓ Sin red</h3>
+      <p>Microsegundos de latencia. No hay HTTP, ni colas, ni auth entre tools.</p>
+    </div>
+    <div class="card">
+      <h3>✓ Sin 137 deploys</h3>
+      <p>Una sola aplicación Node. Cada tool es un archivo, no un servicio.</p>
+    </div>
+    <div class="card">
+      <h3>✓ Trazabilidad</h3>
+      <p>Toda la cadena causal vive en el mismo log y la misma tabla.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SCENE 4 — Flujo ─── -->
+<section class="scene" id="s4">
+  <span class="tag">EL FLUJO COMPLETO</span>
+  <h2 class="ttl">De evento a cadena de tools</h2>
+
+  <div class="flow"><span class="ev">1. simulador / sensor / tool</span>
+       │
+       │  <span class="fn">POST /api/v1/events</span>   (con API key)
+       ▼
+   ┌───────────────────────────────────────────────┐
+   │ <span class="em">Express · src/app.js</span>                       │
+   │  • apiKeyAuth                                  │
+   │  • validationService  (AJV vs event-standard) │
+   │  • eventsController                            │
+   └───────────────────────┬───────────────────────┘
+                           ▼
+   ┌───────────────────────────────────────────────┐
+   │ <span class="em">Postgres · industrial_events</span>               │
+   └───────────────────────┬───────────────────────┘
+                           ▼
+   ┌───────────────────────────────────────────────┐
+   │ <span class="em">eventBus (worker)</span>                          │
+   │   lee evento nuevo                             │
+   │   cruza con <span class="ev">communication-rules.json</span>      │
+   │   ¿quién reacciona a este event.type?         │
+   └───────────────────────┬───────────────────────┘
+                           ▼
+   <span class="fn">toolRunner.runTool('detect_production_deviation', e)</span>
+   <span class="fn">toolRunner.runTool('forecast_production_delays',   e)</span>
+   <span class="fn">toolRunner.runTool('identify_bottlenecks',         e)</span>
+                           │
+                           ▼
+   handlers devuelven eventos nuevos
+                           │
+                           ▼
+   <span class="ok">se reinyectan a /api/v1/events con correlation_id</span>
+   <span class="ok">→ se repite el ciclo</span></div>
+</section>
+
+<!-- ─── SCENE 5 — Las 3 piezas ─── -->
+<section class="scene" id="s5">
+  <span class="tag">LAS 3 PIEZAS NUEVAS</span>
+  <h2 class="ttl">toolRunner · eventBus · handlers</h2>
+  <p class="sub">Todo lo demás ya existe. Solo construimos estas tres cosas para cerrar el círculo.</p>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>1. toolRunner</h3>
+      <p>Carga todos los archivos de <code>src/tools/</code> al arrancar. Expone <code>runTool(id, evento)</code> que invoca el handler correspondiente. Una sola pieza, no le importa qué hace cada tool.</p>
+    </div>
+    <div class="card">
+      <h3>2. eventBus</h3>
+      <p>Worker que lee eventos nuevos de <code>industrial_events</code>, los cruza con <code>communication-rules.json</code>, y llama al <code>toolRunner</code> para cada tool que debe reaccionar. Propaga <code>correlation_id</code>.</p>
+    </div>
+    <div class="card">
+      <h3>3. handlers</h3>
+      <p>Un archivo <code>src/tools/&lt;tool_id&gt;.js</code> por tool. Exporta <code>meta</code> y <code>handler</code>. La función recibe un evento, devuelve otro evento (o <code>null</code>). 137 archivos.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="codeblock"><span class="c">// src/services/toolRunner.js — esencia</span>
+<span class="k">import</span> { readdirSync } <span class="k">from</span> <span class="s">'fs'</span>;
+<span class="k">const</span> tools = {};
+
+<span class="k">for</span> (<span class="k">const</span> file <span class="k">of</span> readdirSync(<span class="s">'./src/tools'</span>)) {
+  <span class="k">const</span> mod = <span class="k">await import</span>(<span class="s">`./tools/${file}`</span>);
+  tools[mod.meta.id] = mod;
+}
+
+<span class="k">export async function</span> <span class="n">runTool</span>(toolId, inputEvent) {
+  <span class="k">const</span> tool = tools[toolId];
+  <span class="k">if</span> (!tool) <span class="k">throw new</span> <span class="n">Error</span>(<span class="s">`Tool desconocida: ${toolId}`</span>);
+  <span class="k">return await</span> tool.<span class="n">handler</span>(inputEvent);
+}</div>
+</section>
+
+<!-- ─── SCENE 6 — Handler ─── -->
+<section class="scene" id="s6">
+  <span class="tag">ANATOMÍA DE UN HANDLER</span>
+  <h2 class="ttl">Cómo se ve una tool real</h2>
+  <p class="sub">Un archivo, dos exports: <code>meta</code> (describe la tool) y <code>handler</code> (la ejecuta). Sin clases, sin frameworks, sin red.</p>
+
+  <div class="codeblock"><span class="c">// src/tools/detect_production_deviation.js</span>
+
+<span class="k">export const</span> meta = {
+  id:          <span class="s">'detect_production_deviation'</span>,
+  version:     <span class="s">'1.0.0'</span>,
+  consumes:    [<span class="s">'PRODUCTION_METRICS_SNAPSHOT'</span>],
+  produces:    [<span class="s">'PRODUCTION_DEVIATION_DETECTED'</span>],
+  category:    <span class="s">'productivity'</span>,
+  description: <span class="s">'Compara planificado vs real y emite alerta.'</span>,
+};
+
+<span class="k">export async function</span> <span class="n">handler</span>(inputEvent) {
+  <span class="k">const</span> { planned, actual } = inputEvent.data;
+  <span class="k">const</span> deviationPct = ((actual - planned) / planned) * <span class="n">100</span>;
+
+  <span class="k">if</span> (Math.abs(deviationPct) &lt; <span class="n">5</span>) <span class="k">return null</span>;  <span class="c">// nada que emitir</span>
+
+  <span class="k">return</span> {
+    event: {
+      type:     <span class="s">'PRODUCTION_DEVIATION_DETECTED'</span>,
+      category: <span class="s">'productivity'</span>,
+      severity: Math.abs(deviationPct) &gt; <span class="n">15</span> ? <span class="s">'high'</span> : <span class="s">'medium'</span>,
+    },
+    asset: inputEvent.asset,
+    data:  { planned, actual, deviation_pct: deviationPct },
+  };
+}</div>
+
+  <p class="sub" style="margin-top:2vh">El bus rellena automáticamente <code>event_id</code>, <code>timestamp</code>, <code>module</code>, <code>correlation_id</code> y <code>causation_id</code>. El handler solo se ocupa de la lógica.</p>
+</section>
+
+<!-- ─── SCENE 7 — Reglas ─── -->
+<section class="scene" id="s7">
+  <span class="tag">REGLAS DE COMUNICACIÓN</span>
+  <h2 class="ttl">communication-rules.json</h2>
+  <p class="sub">Una regla declara: cuando la tool X emite el evento Y, dispara la tool Z (opcionalmente bajo cierta condición).</p>
+
+  <div class="codeblock">{
+  <span class="s">"id"</span>:               <span class="s">"rule-prod-014"</span>,
+  <span class="s">"sourceToolId"</span>:     <span class="s">"production_metrics_collector"</span>,
+  <span class="s">"targetToolId"</span>:     <span class="s">"detect_production_deviation"</span>,
+  <span class="s">"event"</span>:            <span class="s">"PRODUCTION_METRICS_SNAPSHOT"</span>,
+  <span class="s">"protocol"</span>:         <span class="s">"internal"</span>,
+  <span class="s">"topic"</span>:            <span class="s">"tool/detect_production_deviation"</span>,
+  <span class="s">"triggerCondition"</span>: <span class="s">"data.planned &gt; 0"</span>,
+  <span class="s">"description"</span>:      <span class="s">"Las métricas alimentan al detector de desviación."</span>
+}</div>
+
+  <div class="divider"></div>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>Fan-out</h3>
+      <p>Una source, varias targets → 3 reglas con misma <code>sourceToolId</code> y <code>event</code>, distintos <code>targetToolId</code>.</p>
+    </div>
+    <div class="card">
+      <h3>Fan-in</h3>
+      <p>Varias sources, una target → N reglas con distintos <code>sourceToolId</code>, mismo <code>targetToolId</code>.</p>
+    </div>
+    <div class="card">
+      <h3>Cadena</h3>
+      <p>A→B→C→D → N-1 reglas, una por par consecutivo. El <code>correlation_id</code> se propaga.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SCENE 8 — Placeholder ─── -->
+<section class="scene" id="s8">
+  <span class="tag">ESTRATEGIA DE ARRANQUE</span>
+  <h2 class="ttl">137 placeholders primero</h2>
+  <p class="sub">Antes de escribir lógica real, generamos los 137 archivos con un handler "tonto" que devuelve datos plausibles. Resultado: el flujo end-to-end funciona desde el día 1.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Por qué hacerlo así</h3>
+      <p>• Demo completo desde el primer commit.<br>
+         • Dashboard se llena.<br>
+         • Reporte ISO se genera.<br>
+         • Las cadenas tool→tool se ven funcionar.<br>
+         • Reemplazas un placeholder por lógica real sin romper a nadie.</p>
+    </div>
+    <div class="card">
+      <h3>Reglas de un placeholder</h3>
+      <p>• <code>meta.version</code> = <code>0.x.x-placeholder</code><br>
+         • <code>description</code> empieza con <code>[PLACEHOLDER]</code><br>
+         • Salida incluye <code>data._placeholder: true</code><br>
+         • Valores plausibles, no <code>null</code> ni <code>"TODO"</code></p>
+    </div>
+  </div>
+
+  <div class="codeblock"><span class="c">// Versión placeholder · misma forma exacta · valores fake</span>
+<span class="k">export async function</span> <span class="n">handler</span>(inputEvent) {
+  <span class="k">return</span> {
+    event: { type: <span class="s">'PRODUCTION_DEVIATION_DETECTED'</span>, category: <span class="s">'productivity'</span>, severity: <span class="s">'medium'</span> },
+    asset: inputEvent.asset,
+    data:  { deviation_pct: <span class="n">8.4</span>, _placeholder: <span class="k">true</span> },
+  };
+}</div>
+</section>
+
+<!-- ─── SCENE 9 — Roadmap ─── -->
+<section class="scene" id="s9">
+  <span class="tag">PLAN DE EJECUCIÓN</span>
+  <h2 class="ttl">Roadmap de implementación</h2>
+
+  <div class="steps">
+    <div class="step"><div class="stxt">
+      <h4>Normalizar communication-rules.json</h4>
+      <p>Mantener todos los <code>event</code> en <code>SCREAMING_SNAKE_CASE</code> (<code>PRODUCTION_METRICS_SNAPSHOT</code>), añadir <code>protocol: "internal"</code> donde aplique.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Añadir campos al modelo de evento</h4>
+      <p>Migración SQL: <code>correlation_id</code>, <code>causation_id</code>, <code>processed_at</code> en <code>industrial_events</code>. Sin tocar columnas existentes.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Construir <code>toolRunner.js</code></h4>
+      <p>Carga dinámica de <code>src/tools/*.js</code>. Una función pública: <code>runTool(id, evento)</code>.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Generar 137 placeholders</h4>
+      <p>Script que lee <code>tools.json</code> y crea un archivo por tool. Todos con el mismo esqueleto, valores fake.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Construir <code>eventBus.js</code></h4>
+      <p>Worker (<code>setInterval</code> 1s o <code>LISTEN/NOTIFY</code>) que dispara las reglas. Try/catch por handler, dead-letter en errores.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Endpoint <code>/events/chain/:correlation_id</code></h4>
+      <p>Devuelve la cadena causal completa. Herramienta de debug y showcase para el demo.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Implementar 3–5 handlers reales</h4>
+      <p>Los más visibles para el demo: <code>detect_production_deviation</code>, <code>predict_demand</code>, <code>iso_10816_engine</code>. El resto sigue placeholder.</p>
+    </div></div>
+    <div class="step"><div class="stxt">
+      <h4>Validación contra <code>event-standard.json</code></h4>
+      <p>El AJV debe rechazar eventos que no cumplan. Schema por <code>event.type</code>, no solo por estructura base.</p>
+    </div></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <a class="cta" href="#s1">↑ Volver al inicio</a>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "id": "rule-prod-014",
+  "sourceToolId": "production_metrics_collector",
+  "targetToolId": "detect_production_deviation",
+  "event": "PRODUCTION_METRICS_SNAPSHOT",
+  "protocol": "internal",
+  "topic": "tool/detect_production_deviation",
+  "triggerCondition": "always",
+  "description": "Las métricas de producción alimentan al detector de desviación."
+}

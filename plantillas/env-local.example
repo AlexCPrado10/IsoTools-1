@@ -1,0 +1,21 @@
+# .env — Desarrollo local con Docker Compose
+#
+# Copia este archivo a .env en la raíz del repo IsoTools.
+# Estas variables las usa el contenedor de la API cuando corres
+# `docker compose --profile api up -d`.
+
+# API
+PORT=3000
+LOG_LEVEL=info
+
+# Database — apunta al servicio "db" del docker-compose
+DB_HOST=db
+DB_PORT=5432
+DB_USER=industrial
+DB_PASSWORD=industrial
+DB_NAME=industrial_events
+DATABASE_URL=postgresql://industrial:industrial@db:5432/industrial_events
+
+# Tu API key local (generada con `docker compose exec api npm run apikey:create`)
+# La copias DESPUÉS de la primera vez que levantes el ambiente.
+API_KEY=

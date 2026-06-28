@@ -1,0 +1,59 @@
+services:
+  api:
+    build: .
+    container_name: isotools-api
+    profiles: ["api"]
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=industrial
+      - DB_PASSWORD=industrial
+      - DB_NAME=industrial_events
+      - DATABASE_URL=postgresql://industrial:industrial@db:5432/industrial_events
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: npm run dev
+
+  db:
+    profiles: ["api", "seed"]
+    image: postgres:16
+    container_name: isotools-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=industrial
+      - POSTGRES_PASSWORD=industrial
+      - POSTGRES_DB=industrial_events
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U industrial -d industrial_events"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  seed:
+    build: .
+    profiles: ["seed"]
+    command: ["node", "scripts/seedEvents.js", "200"]
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=industrial
+      - DB_PASSWORD=industrial
+      - DB_NAME=industrial_events
+      - DATABASE_URL=postgresql://industrial:industrial@db:5432/industrial_events
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:

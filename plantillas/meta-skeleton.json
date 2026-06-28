@@ -1,0 +1,23 @@
+{
+  "id": "tu_tool_id",
+  "name": "Nombre Legible De Tu Tool",
+  "version": "1.0.0",
+  "consumes": [
+    "EVENTO_EN_MAYUSCULAS"
+  ],
+  "produces": [
+    "EVENTO_EN_MAYUSCULAS"
+  ],
+  "category": "productivity",
+  "description": "Una línea en español explicando qué hace tu tool.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}

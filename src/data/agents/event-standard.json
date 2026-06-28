@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "name": "Industrial Event Standard",
+  "description": "Estructura obligatoria que todos los módulos deben usar al publicar eventos industriales.",
+  "principles": [
+    "Todos los eventos comparten una estructura base obligatoria",
+    "Los datos específicos del módulo van dentro del bloque 'data'",
+    "No se permiten campos arbitrarios fuera de la estructura establecida",
+    "Nomenclatura consistente en snake_case en todos los módulos",
+    "Todos los timestamps en formato ISO 8601 (UTC)"
+  ],
+  "baseStructure": {
+    "event_id": { "type": "string", "format": "uuid", "required": true, "description": "Identificador único del evento" },
+    "timestamp": { "type": "string", "format": "ISO8601-UTC", "required": true, "example": "2026-02-16T21:34:12Z" },
+    "platform_version": { "type": "string", "required": true, "example": "1.0" },
+    "module": {
+      "type": "object",
+      "required": true,
+      "description": "Describe el software que genera el evento",
+      "properties": {
+        "id": { "type": "string", "description": "ID único del módulo en snake_case", "examples": ["vision_ai", "energy_monitor", "oee_module", "bottleneck_detector"] },
+        "version": { "type": "string", "example": "1.2.0" }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": true,
+      "description": "Activo físico o lógico al que pertenece el evento",
+      "properties": {
+        "asset_id": { "type": "string", "description": "ID único del activo — DEBE ser consistente entre módulos" },
+        "asset_type": { "type": "string", "examples": ["camera", "motor", "workstation", "conveyor", "robot", "sensor", "plc"] },
+        "plant_id": { "type": "string", "example": "plant_01" },
+        "area_id": { "type": "string", "example": "assembly" },
+        "line_id": { "type": "string", "example": "line_2" },
+        "location": { "type": "string", "example": "station_4" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": true,
+      "description": "Describe qué ocurrió",
+      "properties": {
+        "type": { "type": "string", "description": "Nombre específico del evento en snake_case", "examples": ["defect_detected", "machine_stopped", "temperature_threshold_exceeded", "metrics_snapshot"] },
+        "category": { "type": "string", "enum": ["quality", "productivity", "maintenance", "energy", "safety", "configuration", "system"] },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+      }
+    },
+    "data": {
+      "type": "object",
+      "required": true,
+      "description": "Datos específicos del módulo — estructura flexible definida por cada tool"
+    },
+    "metadata": {
+      "type": "object",
+      "required": false,
+      "description": "Información contextual no crítica",
+      "optionalFields": ["shift", "operator_id", "production_order", "batch_id", "client_id", "notes"]
+    }
+  },
+  "eventTypes": {
+    "event_driven": {
+      "description": "Ocurren cuando sucede algo específico",
+      "examples": ["defect_detected", "machine_stopped", "bottleneck_detected", "anomaly_confirmed"]
+    },
+    "state_update": {
+      "description": "Actualización de estado del activo",
+      "examples": ["machine_status_changed", "production_mode_updated", "device_registered"]
+    },
+    "periodic_metrics": {
+      "description": "Reporte periódico de métricas",
+      "examples": ["metrics_snapshot", "energy_reading", "kpi_report"]
+    }
+  },
+  "categoryToToolMapping": {
+    "quality": ["inspect_product_quality", "count_items_on_conveyor", "analyze_visual_patterns", "train_vision_model"],
+    "productivity": ["optimize_production_flow", "detect_idle_time", "identify_bottlenecks", "plan_production_automatically"],
+    "maintenance": ["predict_machine_failure", "analyze_vibration_patterns", "collect_vibration_data", "run_local_inference"],
+    "energy": ["monitor_energy_consumption", "optimize_energy_usage"],
+    "safety": ["detect_safety_violations", "monitor_worker_posture", "detect_network_anomalies_local", "block_ip"],
+    "configuration": ["deploy_edge_configuration", "update_edge_agents", "manage_device_registry"],
+    "system": ["orchestrate_edge_nodes", "monitor_edge_health", "sync_erp_data_local"]
+  }
+}

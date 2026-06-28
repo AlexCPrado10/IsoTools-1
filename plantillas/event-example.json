@@ -1,0 +1,34 @@
+{
+  "event_id": "01HG7Z9KQR5N3M2P4VX8YBWQTC",
+  "timestamp": "2026-05-19T14:32:10.123Z",
+  "platform_version": "2.0",
+  "module": {
+    "id": "vision_ai",
+    "version": "1.2.0"
+  },
+  "asset": {
+    "asset_id": "plant_01-assembly-line_2-robot_03",
+    "asset_type": "robot",
+    "plant_id": "plant_01",
+    "area_id": "assembly",
+    "line_id": "line_2",
+    "location": "station_4"
+  },
+  "event": {
+    "type": "DEFECT_FOUND",
+    "category": "quality",
+    "severity": "high"
+  },
+  "data": {
+    "defect_class": "scratch",
+    "confidence": 0.94,
+    "image_ref": "s3://defects/2026-05-19/abc.jpg"
+  },
+  "metadata": {
+    "shift": "B",
+    "operator_id": "op_142",
+    "batch_id": "batch-20260519-7"
+  },
+  "correlation_id": "01HG7Z9KQR5N3M2P4VX8YBWQTC",
+  "causation_id": "01HG7Z9KQR5N3M2P4VX8YBWQXX"
+}

@@ -1,0 +1,29 @@
+{
+  "event_id": "evt-001",
+  "timestamp": "2026-02-18T18:38:00Z",
+  "platform_version": "2.0.0",
+  "module": {
+    "id": "vision",
+    "version": "1.0.0"
+  },
+  "asset": {
+    "asset_id": "robot-01",
+    "asset_type": "arm",
+    "plant_id": "PLT-01",
+    "area_id": "AREA-A",
+    "line_id": "LINE-1",
+    "location": "Cell A"
+  },
+  "event": {
+    "type": "ALERT",
+    "category": "QUALITY",
+    "severity": "HIGH"
+  },
+  "data": {
+    "defect_count": 2
+  },
+  "metadata": {
+    "operator": "carlos",
+    "notes": "falla de visión"
+  }
+}

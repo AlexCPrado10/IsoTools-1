@@ -1,0 +1,38 @@
+{
+  "name": "isotools",
+  "version": "1.0.0",
+  "description": "Tools de agentes industriales para procedimientos ISO: handlers, bus de eventos y API de ingesta. Sin código de sitio web.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "lint": "eslint .",
+    "db:migrate": "psql $DATABASE_URL -f db/init.sql",
+    "seed:events": "node scripts/seedEvents.js",
+    "seed:stream": "node scripts/simulateStream.js",
+    "sim:iso": "node scripts/test_package_iso.js",
+    "apikey:create": "node scripts/createApiKey.js",
+    "cerebro:generar": "node scripts/generar-cerebro.js",
+    "rama:comm": "node scripts/crear-rama-comunicacion.js"
+  },
+  "dependencies": {
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
+    "dayjs": "^1.11.13",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "morgan": "^1.10.0",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.18.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.4.0",
+    "nodemon": "^3.1.7"
+  }
+}

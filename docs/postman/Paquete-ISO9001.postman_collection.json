@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "Plataforma Industrial — Paquete ISO 9001",
+    "_postman_id": "a1f3e2c0-iso9001-pkg-0001",
+    "description": "Colección para simular el bus de eventos del paquete ISO 9001.\n\nManda un evento 'dummy' (la SALIDA de una tool) y el bus dispara en cadena a las tools que reaccionan. La respuesta del POST trae el array `chain` con todo lo que se generó.\n\nVARIABLES (edítalas en la pestaña 'Variables' de la colección):\n- baseUrl: http://localhost:3000  (local)  o  https://www.expo-programador.com (Railway)\n- apiKey:  tu API key personal (header x-api-key)\n\nEl POST guarda automáticamente el correlation_id devuelto en la variable {{correlationId}}, para que el request 'Ver cadena' funcione sin copiar/pegar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "apiKey", "value": "PEGA-AQUI-TU-API-KEY" },
+    { "key": "correlationId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0 · Health check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/health", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health"] }
+      }
+    },
+    {
+      "name": "1 · Disparar cadena — Mediciones (cadena larga SPC)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var body = pm.response.json();",
+              "if (body.correlation_id) { pm.collectionVariables.set('correlationId', body.correlation_id); }",
+              "pm.test('201 aceptado', function () { pm.response.to.have.status(201); });",
+              "pm.test('disparó la cadena', function () { pm.expect(body.triggered).to.be.above(0); });",
+              "console.log('Tools disparadas:', body.triggered);",
+              "(body.chain || []).forEach(function (c) { console.log('->', c.tool, '['+c.event+']'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-api-key", "value": "{{apiKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_id\": \"{{$guid}}\",\n  \"timestamp\": \"{{$isoTimestamp}}\",\n  \"platform_version\": \"1.0\",\n  \"module\": { \"id\": \"collect_quality_measurements\", \"version\": \"1.0.0\" },\n  \"asset\": { \"asset_id\": \"LINE-2\", \"asset_type\": \"workstation\", \"plant_id\": \"plant_01\", \"line_id\": \"line_2\" },\n  \"event\": { \"type\": \"MEASUREMENTS_CAPTURED\", \"category\": \"quality\", \"severity\": \"low\" },\n  \"data\": { \"partId\": \"PART-001\", \"characteristicId\": \"CHAR-DIAM-01\", \"measurements\": [10.01, 9.98, 10.03, 9.99], \"passFailResult\": \"pass\", \"defectsFound\": 0 },\n  \"metadata\": { \"notes\": \"dummy desde Postman\" }\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/events", "host": ["{{baseUrl}}"], "path": ["api", "v1", "events"] }
+      }
+    },
+    {
+      "name": "2 · Disparar cadena — Defecto de visión",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var body = pm.response.json();",
+              "if (body.correlation_id) { pm.collectionVariables.set('correlationId', body.correlation_id); }",
+              "(body.chain || []).forEach(function (c) { console.log('->', c.tool, '['+c.event+']'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-api-key", "value": "{{apiKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_id\": \"{{$guid}}\",\n  \"timestamp\": \"{{$isoTimestamp}}\",\n  \"platform_version\": \"1.0\",\n  \"module\": { \"id\": \"inspect_product_quality\", \"version\": \"1.0.0\" },\n  \"asset\": { \"asset_id\": \"CAM-1\", \"asset_type\": \"camera\", \"plant_id\": \"plant_01\", \"location\": \"station_4\" },\n  \"event\": { \"type\": \"DEFECT_FOUND\", \"category\": \"quality\", \"severity\": \"high\" },\n  \"data\": { \"partId\": \"PART-001\", \"defectFound\": true, \"defectType\": \"scratch\", \"confidence\": 0.92 },\n  \"metadata\": { \"notes\": \"dummy desde Postman\" }\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/events", "host": ["{{baseUrl}}"], "path": ["api", "v1", "events"] }
+      }
+    },
+    {
+      "name": "3 · Disparar cadena — Dirección / KPIs",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var body = pm.response.json();",
+              "if (body.correlation_id) { pm.collectionVariables.set('correlationId', body.correlation_id); }",
+              "(body.chain || []).forEach(function (c) { console.log('->', c.tool, '['+c.event+']'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-api-key", "value": "{{apiKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_id\": \"{{$guid}}\",\n  \"timestamp\": \"{{$isoTimestamp}}\",\n  \"platform_version\": \"1.0\",\n  \"module\": { \"id\": \"compare_planned_vs_actual\", \"version\": \"1.0.0\" },\n  \"asset\": { \"asset_id\": \"plant_01\", \"asset_type\": \"plc\", \"plant_id\": \"plant_01\" },\n  \"event\": { \"type\": \"PRODUCTION_VARIANCE_DETECTED\", \"category\": \"productivity\", \"severity\": \"medium\" },\n  \"data\": { \"module\": \"production\", \"deviationPercent\": 12.5, \"status\": \"over_budget\" },\n  \"metadata\": { \"notes\": \"dummy desde Postman\" }\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/events", "host": ["{{baseUrl}}"], "path": ["api", "v1", "events"] }
+      }
+    },
+    {
+      "name": "4 · Ver cadena guardada (por correlation_id)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "x-api-key", "value": "{{apiKey}}" } ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/events/chain/{{correlationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "events", "chain", "{{correlationId}}"]
+        }
+      }
+    }
+  ]
+}
