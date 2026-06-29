@@ -1,0 +1,217 @@
+{
+  "main": {
+    "id": "c45e745625433153",
+    "type": "split",
+    "children": [
+      {
+        "id": "83950680443c3a5a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9b74df0ff076c72c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "cerebro/comunicaciones/analyze_failure_modes__schedule_preventive_maintenance.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "analyze_failure_modes__schedule_preventive_maintenance"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2c64d413ec54c350",
+    "type": "split",
+    "children": [
+      {
+        "id": "6366eddcd2413f41",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7b6614832d254f1f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "b444acdc0b6b4f74",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "1b14c27cd9f960d0",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "dac21f27dfdad320",
+    "type": "split",
+    "children": [
+      {
+        "id": "103349becd7b3419",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a9f833c6c7bbbe39",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "cerebro/comunicaciones/analyze_failure_modes__schedule_preventive_maintenance.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for analyze_failure_modes__schedule_preventive_maintenance"
+            }
+          },
+          {
+            "id": "22be2e548cc3ed5b",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "cerebro/comunicaciones/analyze_failure_modes__schedule_preventive_maintenance.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from analyze_failure_modes__schedule_preventive_maintenance"
+            }
+          },
+          {
+            "id": "4def05e9ed51e833",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "2bbcfb1b02c58f8d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "869b1a61d2dfd13c",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "cerebro/comunicaciones/analyze_failure_modes__schedule_preventive_maintenance.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of analyze_failure_modes__schedule_preventive_maintenance"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "9b74df0ff076c72c",
+  "lastOpenFiles": [
+    "README.md.tmp.29119.d811954c54ed",
+    "pasos/09-checklist-merge.md.tmp.29119.472ea96e7f65",
+    "pasos/10-cerebro-y-colaboracion.md",
+    "pasos/10-cerebro-y-colaboracion.md.tmp.29119.bef0025f66fe",
+    "cerebro/comunicaciones/analyze_failure_modes__manage_nonconformances.md",
+    "cerebro/tools/detect_out_of_control_signals.md",
+    "cerebro/tools/calculate_control_charts.md",
+    "cerebro/comunicaciones/run_msa_analysis__calculate_control_charts.md",
+    "cerebro/tools/collect_quality_measurements.md",
+    "cerebro/tools/calculate_cpk_ppk.md",
+    "cerebro/comunicaciones/calculate_cpk_ppk__manage_product_specs.md",
+    "cerebro/tools/calculate_scm_kpis.md",
+    "cerebro/tools/analyze_visual_patterns.md",
+    "cerebro/tools/analyze_lead_times.md",
+    "cerebro/tools/acknowledge_alarm.md",
+    "pasos/03-archivos-json.md",
+    "pasos/02-api-central.md",
+    "pasos/01-vision-general.md",
+    "cerebro/comunicaciones/calculate_control_charts__detect_out_of_control_signals.md",
+    "cerebro/agentes/mantenimiento-cmms.md",
+    "cerebro/agentes/infraestructura-edge.md",
+    "cerebro/agentes/energia-sustentabilidad.md",
+    "cerebro/agentes/control-scada.md",
+    "cerebro/agentes/digital-twin.md",
+    "cerebro/agentes/vision-artificial-industrial.md",
+    "cerebro/agentes/seguridad-hse.md",
+    "cerebro/agentes/produccion-avanzada.md",
+    "cerebro/agentes/erp-gestion-empresarial.md"
+  ]
+}

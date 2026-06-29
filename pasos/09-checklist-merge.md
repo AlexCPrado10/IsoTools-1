@@ -101,4 +101,4 @@ Las columnas **Formato** y **Lo pone** describen el target. Los campos con 🚧 
 
 ## Siguiente paso
 
-→ [⬅ Volver al roadmap](../README.md) — ya cerraste el ciclo. Si tu PR pasa esta checklist, está listo para merge.
+→ [Paso 10 — El cerebro y coordinarte con la otra tool](./10-cerebro-y-colaboracion.md) — cómo usar el cerebro Obsidian, ponerte de acuerdo con quien tiene la tool que se comunica con la tuya, saber cuándo está lista y cuándo llega a Railway.

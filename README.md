@@ -8,9 +8,9 @@ Repositorio **único y enfocado** para construir las *tools* de los agentes indu
 
 ## 🚀 Empieza aquí según quién seas
 
-- **Vas a programar una tool por primera vez** → sigue el roadmap paso a paso en **[`pasos/`](./pasos/)** (1 → 9, sin saltarte ninguno).
+- **Vas a programar una tool por primera vez** → sigue el roadmap paso a paso en **[`pasos/`](./pasos/)** (1 → 10, sin saltarte ninguno).
 - **Necesitas la referencia técnica** → **[`docs/GUIA_TOOLS.md`](./docs/GUIA_TOOLS.md)** (anatomía del handler, reglas de nombrado IES, comunicación, checklist).
-- **Quieres ver qué hace cada tool y con quién habla** → abre el **[cerebro Obsidian](./cerebro/)** (`cerebro/index.md`).
+- **Quieres ver qué hace cada tool y con quién habla** → abre el **[cerebro Obsidian](./cerebro/)** (`cerebro/index.md`). Cómo usarlo y coordinarte con la otra tool: **[`pasos/10-cerebro-y-colaboracion.md`](./pasos/10-cerebro-y-colaboracion.md)**.
 - **Vas a levantar y probar el ambiente** → **[`docs/SIMULACION_PASO_A_PASO.md`](./docs/SIMULACION_PASO_A_PASO.md)**.
 
 ---
