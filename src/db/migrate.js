@@ -3,21 +3,94 @@
 // Garantiza que las columnas de la cadena causal existan sin depender de que
 // alguien corra SQL a mano. Es NO FATAL: si algo falla, se loguea pero la API
 // arranca igual (no tumbamos el sitio por la migración).
-import pool from './index.js';
+import pool from "./index.js";
+import capabilities from "./capabilities.js";
 
 const STATEMENTS = [
-  'ALTER TABLE industrial_events ADD COLUMN IF NOT EXISTS correlation_id TEXT',
-  'ALTER TABLE industrial_events ADD COLUMN IF NOT EXISTS causation_id TEXT',
-  'CREATE INDEX IF NOT EXISTS idx_industrial_events_correlation_id ON industrial_events (correlation_id)'
+  "ALTER TABLE industrial_events ADD COLUMN IF NOT EXISTS correlation_id TEXT",
+  "ALTER TABLE industrial_events ADD COLUMN IF NOT EXISTS causation_id TEXT",
+  "ALTER TABLE industrial_events ADD COLUMN IF NOT EXISTS seq BIGINT GENERATED ALWAYS AS IDENTITY",
+  "CREATE INDEX IF NOT EXISTS idx_industrial_events_correlation_id ON industrial_events (correlation_id)",
+  "CREATE INDEX IF NOT EXISTS idx_industrial_events_seq ON industrial_events (seq)",
+  "CREATE INDEX IF NOT EXISTS idx_industrial_events_type_seq ON industrial_events (event_type, seq DESC)",
+  "CREATE INDEX IF NOT EXISTS idx_industrial_events_module_seq ON industrial_events (module_id, seq DESC)",
 ];
 
-export async function ensureSchema () {
+// El indice unico se intenta aparte: si ya hay event_id duplicados de datos
+// viejos, su fallo no debe abortar el resto de la migracion. Sin el, la ingesta
+// sigue funcionando pero NO es idempotente a nivel de base (se detecta abajo).
+const UNIQUE_EVENT_ID =
+  "CREATE UNIQUE INDEX IF NOT EXISTS uq_industrial_events_event_id ON industrial_events (event_id)";
+
+// Espera a que la base responda antes de migrar (reintentos con backoff corto).
+// Evita: (a) detectar mal las capacidades por un blip transitorio al arrancar, y
+// (b) sufrir N timeouts en serie si la DB no esta. Devuelve true si hay DB.
+async function waitForDb(attempts = 5, delayMs = 1000) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      await pool.query("SELECT 1");
+      return true;
+    } catch (err) {
+      console.warn(
+        `[migrate] DB no lista (intento ${i}/${attempts}): ${err.message}`,
+      );
+      if (i < attempts) await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  return false;
+}
+
+export async function ensureSchema() {
+  const dbUp = await waitForDb();
+  if (!dbUp) {
+    console.error(
+      "[migrate] DB no disponible; migracion diferida. La API arranca en modo compatible.",
+    );
+    return;
+  }
+
   for (const sql of STATEMENTS) {
     try {
       await pool.query(sql);
     } catch (err) {
-      console.error('[migrate] no se pudo aplicar (no fatal):', err.message);
+      console.error("[migrate] no se pudo aplicar (no fatal):", err.message);
     }
   }
-  console.log('[migrate] esquema de cadena causal verificado (correlation_id/causation_id)');
+
+  try {
+    await pool.query(UNIQUE_EVENT_ID);
+  } catch (err) {
+    console.error(
+      "[migrate] indice unico de event_id no aplicado (posibles duplicados previos). " +
+        "La ingesta idempotente por base queda deshabilitada:",
+      err.message,
+    );
+  }
+
+  await detectCapabilities();
+  console.log(
+    `[migrate] esquema verificado · seq=${capabilities.hasSeq} · idempotencia(event_id)=${capabilities.hasEventIdUnique}`,
+  );
 }
+
+async function detectCapabilities() {
+  try {
+    const col = await pool.query(
+      "SELECT 1 FROM information_schema.columns WHERE table_name = 'industrial_events' AND column_name = 'seq'",
+    );
+    capabilities.hasSeq = col.rowCount > 0;
+  } catch (err) {
+    console.error("[migrate] no se pudo detectar columna seq:", err.message);
+  }
+
+  try {
+    const idx = await pool.query(
+      "SELECT 1 FROM pg_indexes WHERE tablename = 'industrial_events' AND indexname = 'uq_industrial_events_event_id'",
+    );
+    capabilities.hasEventIdUnique = idx.rowCount > 0;
+  } catch (err) {
+    console.error("[migrate] no se pudo detectar indice unico:", err.message);
+  }
+}
+
+export default ensureSchema;

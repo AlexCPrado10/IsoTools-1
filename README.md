@@ -71,10 +71,15 @@ Sin Docker: copia `.env.example` → `.env`, ajusta `DATABASE_URL` y corre `npm 
 
 | Método | Ruta | Qué hace |
 |--------|------|----------|
-| `POST` | `/api/v1/events` | Valida, guarda y **dispara la cadena de tools** |
-| `GET`  | `/api/v1/events?start=…&end=…` | Consulta de eventos por rango |
+| `POST` | `/api/v1/events` | Valida, guarda y **dispara la cadena de tools** (ingesta **idempotente** por `event_id`) |
+| `GET`  | `/api/v1/events?since_seq=…` · `?start=…&end=…` | Consulta por **cursor keyset** o por rango, con filtros `type`/`module_id`/`asset_id`/`category`/`severity` |
+| `GET`  | `/api/v1/events/latest?type=…` | **Última data por tipo** (cache + ETag/304) |
+| `GET`  | `/api/v1/events/subscriptions/:toolId` | Solo los tipos que esa tool declara **consumir** |
 | `GET`  | `/api/v1/events/chain/:correlationId` | Cadena causal de un correlation_id |
-| `GET`  | `/api/v1/health` | Estado del servicio |
+| `GET`  | `/api/v1/catalog/*` | Catálogo/contrato público (event standard, productores/consumidores) |
+| `GET`  | `/api/v1/health` · `/api/v1/ready` | Liveness · readiness (comprueba DB) |
+
+> Detalle completo de la plataforma cloud (publicar/consumir, cómo evitar el over-fetch, patrones de resiliencia y despliegue): **[`PLATAFORMA-CLOUD.md`](./PLATAFORMA-CLOUD.md)**.
 
 ### Scripts útiles
 
