@@ -3,6 +3,7 @@
 // Garantiza que las columnas de la cadena causal existan sin depender de que
 // alguien corra SQL a mano. Es NO FATAL: si algo falla, se loguea pero la API
 // arranca igual (no tumbamos el sitio por la migración).
+import { readFile } from "fs/promises";
 import pool from "./index.js";
 import capabilities from "./capabilities.js";
 
@@ -40,6 +41,28 @@ async function waitForDb(attempts = 5, delayMs = 1000) {
   return false;
 }
 
+// Crea el esquema base (tablas, indices, extension) de forma idempotente. En un
+// Postgres NUEVO (p. ej. una base recien creada en Railway) no hay tablas que
+// alterar: hay que CREARLAS primero. Las STATEMENTS de abajo solo hacen ALTER y
+// asumen que la tabla ya existe, asi que sin esto una base vacia se queda sin
+// esquema. init.sql es 100% idempotente (CREATE/ALTER ... IF NOT EXISTS + rol
+// guardado por un DO), asi que es seguro correrlo en cada arranque. No fatal.
+async function ensureBaseSchema() {
+  try {
+    const sql = await readFile(
+      new URL("../../db/init.sql", import.meta.url),
+      "utf8",
+    );
+    await pool.query(sql);
+    console.log("[migrate] esquema base aplicado (init.sql)");
+  } catch (err) {
+    console.error(
+      "[migrate] no se pudo aplicar el esquema base init.sql (no fatal):",
+      err.message,
+    );
+  }
+}
+
 export async function ensureSchema() {
   const dbUp = await waitForDb();
   if (!dbUp) {
@@ -48,6 +71,8 @@ export async function ensureSchema() {
     );
     return;
   }
+
+  await ensureBaseSchema();
 
   for (const sql of STATEMENTS) {
     try {
