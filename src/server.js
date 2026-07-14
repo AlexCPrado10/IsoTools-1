@@ -18,6 +18,7 @@ import express from 'express';
 import morgan from 'morgan';
 import config from './config.js';
 import { ensureSchema } from './db/migrate.js';
+import { bootstrapApiKey } from './db/bootstrapApiKey.js';
 import pool, { pingDb } from './db/index.js';
 import eventsRouter from './routes/eventsRoutes.js';
 import catalogRouter from './routes/catalogRoutes.js';
@@ -64,7 +65,9 @@ app.use((err, req, res, next) => {
 // Verifica el esquema (columnas de cadena causal + cursor seq + idempotencia) y
 // arranca. La migracion es NO fatal: si falla, la API arranca igual.
 const server = await new Promise((resolve) => {
-  ensureSchema().finally(() => {
+  ensureSchema()
+    .then(() => bootstrapApiKey())
+    .finally(() => {
     const s = app.listen(config.port, () => {
       console.log(`IsoTools · plataforma de eventos en http://localhost:${config.port}`);
       resolve(s);
