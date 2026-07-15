@@ -1,4 +1,4 @@
-# Paso 8 — Probar localmente tu tool
+# Paso 8 — Probar tu tool
 
 > [⬅ Volver al roadmap](../README.md)
 
@@ -30,14 +30,14 @@ Verificar tu tool en tres niveles: (1) que el handler funciona aislado, (2) que 
 
 ## 8.1 Contra qué API pruebas
 
-La forma normal de probar es **contra la plataforma ya desplegada** en Railway. Necesitas tu API key (paso 0 del [Paso 2](./02-api-central.md)) y la URL base:
+Siempre pruebas **contra la plataforma central** desplegada en Railway (es la única; nadie corre la plataforma en local). Necesitas tu API key (§ 2.0 del [Paso 2](./02-api-central.md)) y la URL base:
 
 ```bash
 export API_BASE_URL="https://isotools-production.up.railway.app"
 export API_KEY="<tu-key>"
 ```
 
-> **Opcional — solo el admin o para depurar sin red:** puedes levantar toda la plataforma en tu laptop con Docker (`docker compose --profile api up -d`) y crear una key local con `docker compose exec api npm run apikey:create -- my-tool --scopes=events:read,events:write`. No es necesario para el flujo normal. Ver [Paso 2](./02-api-central.md).
+> El **smoke test aislado** de § 8.2 sí corre en tu máquina, pero no toca la plataforma: solo importa tu handler como módulo y le pasa un evento de prueba (es un test unitario, no una conexión al servidor).
 
 ---
 

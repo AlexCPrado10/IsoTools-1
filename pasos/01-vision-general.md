@@ -116,7 +116,7 @@ IsoTools/
 │   ├── generar-cerebro.js          regenera las notas del cerebro
 │   └── crear-rama-comunicacion.js  crea la rama de tu comunicación
 │
-├── docker-compose.yml          ◄── ⚪ NO LO TOCAS (Paso 2 explica cómo levantarlo)
+├── docker-compose.yml          ◄── ⚪ NO LO TOCAS (deploy del admin, Paso 2)
 ├── Dockerfile                  ◄── ⚪ NO LO TOCAS
 ├── railway.toml                ◄── ⚪ NO LO TOCAS (es deploy del admin)
 ├── db/init.sql                 ◄── ⚪ NO LO TOCAS

@@ -4,22 +4,20 @@
 
 ## Qué vas a lograr en este paso
 
-Conseguir tu **API key** y **conectarte a la plataforma ya desplegada**. Ese es el flujo normal: la plataforma corre en Railway y tú solo apuntas tu tool a su URL con tu key.
+Conseguir tu **API key** y **conectarte a la plataforma central**. **Todos se conectan a la misma plataforma desplegada** en Railway: no se corre nada en local. Apuntas tu tool a la URL con tu key y listo.
 
 Orden correcto:
 
 1. **Paso 0 — API key** (lo primero de todo, § 2.0).
-2. **Conectarte a la plataforma desplegada** (§ 2.4) y probar publicar/consumir.
-3. *(Opcional)* correr la plataforma en tu laptop con Docker solo si necesitas depurar sin red (§ 2.2).
+2. **Conectarte a la plataforma central** (§ 2.3) y probar publicar/consumir.
 
 > **URL base de la plataforma:**
 > ```
 > https://isotools-production.up.railway.app/api/v1
 > ```
 
-> 📥 **Plantillas descargables**:
+> 📥 **Plantilla descargable**:
 > - [`env-central.example`](../plantillas/env-central.example) — variables para conectarte a la plataforma
-> - [`env-local.example`](../plantillas/env-local.example) — variables para el modo local con Docker (opcional)
 
 ---
 
@@ -55,98 +53,33 @@ Sin API key, todo `POST`/`GET` de eventos responde `401`. Consíguela **antes de
 
 ---
 
-## 2.1 Topología híbrida — qué corre dónde
+## 2.1 Topología — una sola plataforma para todos
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│  TU LAPTOP (cada programador)                              │
-│                                                            │
-│  docker compose --profile api up -d                        │
-│       ┌──────────────────────────┐                         │
-│       │ IsoTools (Node) │ ◄── tu tool en          │
-│       │  puerto 3000             │     src/tools/...       │
-│       └────────────┬─────────────┘                         │
-│                    ▼                                       │
-│       ┌──────────────────────────┐                         │
-│       │ Postgres 16 (Docker)     │                         │
-│       └──────────────────────────┘                         │
-│                                                            │
-│  Usar para: iterar el handler, smoke tests, debugging      │
-└───────────────────────────────────────────────────────────┘
-                            │
-                            │ git push
-                            ▼
-┌───────────────────────────────────────────────────────────┐
-│  PLATAFORMA — Railway                                      │
+│  PLATAFORMA CENTRAL — Railway (única, para todos)          │
 │  https://isotools-production.up.railway.app                │
 │                                                            │
 │  Auto-deploy en cada push a main                           │
 │  Postgres administrado (plugin de Railway)                 │
 │  Health: /api/v1/health                                    │
 │                                                            │
-│  Usar para: TODO el flujo normal — publicar, consumir,     │
-│  integración real entre tools                              │
+│  Aquí ocurre TODO: publicar, consumir, integrar tools      │
 └───────────────────────────────────────────────────────────┘
+        ▲                    ▲                    ▲
+        │ HTTP + x-api-key   │                    │
+   ┌─────────┐          ┌─────────┐          ┌─────────┐
+   │ tool A  │          │ tool B  │          │ tool C  │
+   └─────────┘          └─────────┘          └─────────┘
 ```
 
-**Regla simple**: te conectas a la plataforma desplegada. El modo local con Docker es solo un extra para depurar sin red.
+**Regla simple**: no corres nada en local. Todas las tools apuntan a la misma URL central con su propia API key. El dashboard, las vistas y el reporte ISO **no viven en este repo** (es solo-tools): corren en el repo de la plataforma.
 
 ---
 
-## 2.2 (Opcional) Correr la plataforma en local con Docker
+## 2.2 Deploy de la plataforma en Railway
 
-> Esto **no es necesario** para el flujo normal (te conectas a la plataforma desplegada, § 2.4). Úsalo solo si quieres depurar sin red o el admin necesita reproducir algo localmente.
-
-### Pre-requisitos
-
-- Docker Desktop (Mac/Win) o Docker Engine + Compose (Linux)
-- Git
-- Node 18+ (opcional, solo si quieres correr scripts fuera de Docker)
-
-### Paso a paso
-
-```bash
-# 1. Clonar el repo
-git clone <url-del-repo-IsoTools>
-cd IsoTools
-
-# 2. Copiar el .env de ejemplo
-cp .env.example .env
-
-# 3. Levantar API + Postgres
-docker compose --profile api up -d
-
-# 4. Verificar que vive
-curl http://localhost:3000/api/v1/health
-# Esperado: {"status":"ok"}
-
-# 5. Crear tu API key personal (queda guardada en la DB local)
-docker compose exec api npm run apikey:create -- mi-nombre --scopes=events:read,events:write
-# Copia la key que aparece. NO se vuelve a mostrar.
-
-# 6. Mandar un evento de prueba
-curl -X POST http://localhost:3000/api/v1/events \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <tu-key-local>" \
-  -d @sample-event.json
-```
-
-> El dashboard, las vistas y el reporte ISO **no viven en este repo** (es solo-tools). Corren en el repo de la plataforma.
-
-### Cuándo usas el modo local
-
-| Caso | Usa local |
-|---|---|
-| Depurar un evento que se rompe en el ingest sin tocar producción | ✅ |
-| Correr smoke tests del handler sin red | ✅ |
-| El admin quiere reproducir un problema de la plataforma | ✅ |
-| Flujo normal (publicar/consumir, integrar con otras tools) | ❌ usa la plataforma desplegada (§ 2.4) |
-
----
-
-## 2.3 Parte B — Deploy de la API central en Railway
-
-> Esta parte la hace **una vez** el admin del proyecto (Carlos). Si tú eres un programador externo, salta a [2.4](#24-parte-c--conectarte-a-la-api-central).
+> Esta parte la hace **una vez** el admin del proyecto (Carlos). Si tú eres un programador, salta a [§ 2.3](#23-conectarte-a-la-plataforma-el-flujo-normal).
 
 ### Por qué Railway
 
@@ -171,7 +104,7 @@ curl -X POST http://localhost:3000/api/v1/events \
    psql $DATABASE_URL -f db/init.sql
    ```
 7. **Genera el dominio público**: Settings → Networking → `Generate Domain`. Obtienes algo como `IsoTools-production.up.railway.app`, o conectas un dominio propio (en este proyecto: `www.expo-programador.com`).
-8. **Crea API keys para los programadores** (ver § 2.5).
+8. **Registra las API keys de los programadores** (ver § 2.4).
 
 ### Verificar el deploy
 
@@ -211,7 +144,7 @@ Lecciones aprendidas al hacer el deploy inicial. Si vas a tocar Railway, léelo:
 
 ---
 
-## 2.4 Conectarte a la plataforma (el flujo normal)
+## 2.3 Conectarte a la plataforma (el flujo normal)
 
 ### Pre-requisitos
 
@@ -263,7 +196,7 @@ curl "$API_BASE_URL/api/v1/events/chain/<correlation-id>" -H "x-api-key: $API_KE
 
 ---
 
-## 2.5 Parte D — Gestión de API keys (una por programador)
+## 2.4 Gestión de API keys (una por tool)
 
 **Decisión del proyecto**: cada programador tiene su propia API key. Esto te da:
 
@@ -285,11 +218,8 @@ Redeploy → la key queda insertada (hasheada, no se imprime; idempotente). El a
 
 ### Alternativa (admin, con acceso a la DB): `apikey:create`
 
-Si el admin prefiere generar la key él mismo en vez de recibirla:
+Si el admin prefiere generar la key él mismo en vez de recibirla, desde la shell del servicio en Railway:
 ```bash
-# En local con Docker:
-docker compose exec api npm run apikey:create -- tool-vision --scopes=events:read,events:write
-# En Railway con shell del servicio:
 node scripts/createApiKey.js tool-vision --scopes=events:read,events:write
 ```
 Imprime la key en texto plano **una sola vez** — cópiala y entrégasela al programador.
@@ -325,34 +255,21 @@ DELETE FROM api_keys WHERE label = 'nombre-del-programador';
 
 ---
 
-## 2.6 Cuándo usar la plataforma vs el modo local — tabla decisiva
-
-| Lo que vas a hacer | Plataforma (Railway) | Local (Docker, opcional) |
-|---|---|---|
-| Publicar / consumir en el flujo normal | ✅ | ❌ |
-| Integrar con tool de otro programador | ✅ | ❌ |
-| Demo a stakeholders | ✅ | ❌ |
-| Smoke test del handler aislado (sin red) | — | ✅ |
-| Depurar un ingest que se rompe sin tocar producción | — | ✅ |
-
----
-
-## 2.7 Solución de problemas comunes
+## 2.5 Solución de problemas comunes
 
 | Síntoma | Causa | Cómo resolver |
 |---|---|---|
-| `connection refused` al hacer curl local | Docker compose no levantó | `docker compose --profile api up -d` y revisa `docker compose logs api` |
 | `401 Unauthorized` | API key faltante o mal escrita | Verifica header `x-api-key` (no `Authorization`), key sin saltos de línea |
-| `403 forbidden — missing scope` | Tu key no tiene `events:write` | Regenera con el scope correcto |
-| Evento aceptado pero no aparece en `/events` | Falló validación silenciosa o se cayó el worker del bus | `docker compose logs api` o en Railway: pestaña "Deployments" → "View Logs" |
+| `403 forbidden — missing scope` | Tu key no tiene el scope | Pide al admin registrar la key con `events:read` y/o `events:write` |
+| Evento aceptado (201) pero no aparece al consumir | Falló validación silenciosa o el filtro no coincide | Revisa el `type`/filtros de tu `GET`; en Railway: pestaña "Deployments" → "View Logs" |
+| `429 Too Many Requests` | Poll demasiado agresivo | Respeta el header `Retry-After`; baja la frecuencia y usa el `ETag` de `/latest` |
 | Railway tarda en redesployar | Build de Docker lento | Normal en el primer deploy. Subsecuentes usan cache y bajan a ~1 min |
 
 ---
 
 ## Archivos descargables
 
-- 📥 [`env-local.example`](../plantillas/env-local.example) — `.env` para desarrollo local con Docker Compose.
-- 📥 [`env-central.example`](../plantillas/env-central.example) — `.env.central` para conectarte a Railway.
+- 📥 [`env-central.example`](../plantillas/env-central.example) — `.env` para conectarte a la plataforma en Railway.
 
 ---
 
@@ -360,4 +277,4 @@ DELETE FROM api_keys WHERE label = 'nombre-del-programador';
 
 → [Paso 3: Cargar los archivos JSON del estándar](./03-archivos-json.md) _(en preparación)_
 
-Si ya tienes la API corriendo y quieres saltar al código: → [Paso 4: Nombrado IES](./04-nombrado-ies.md)
+Si ya tienes tu API key y la URL, y quieres saltar al código: → [Paso 4: Nombrado IES](./04-nombrado-ies.md)

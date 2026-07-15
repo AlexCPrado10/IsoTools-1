@@ -50,26 +50,29 @@ IsoTools/
 
 ---
 
-## Cómo correr el ambiente (local)
+## Cómo conectarte (todos usan la plataforma central)
 
-```bash
-# 1. Dependencias
-npm install
+**No se corre nada en local.** Todas las tools se conectan a la misma plataforma desplegada en Railway:
 
-# 2. Postgres + API con Docker Compose
-docker compose --profile api up -d
-
-# 3. Crear una API key
-npm run apikey:create mi-cliente -- --scopes=events:read,events:write
-
-# 4. Probar
-curl http://localhost:3000/api/v1/health
+```
+https://isotools-production.up.railway.app/api/v1
 ```
 
-Servicios: API en `http://localhost:3000`, Postgres en `localhost:5432` (`industrial`/`industrial`).
-Sin Docker: copia `.env.example` → `.env`, ajusta `DATABASE_URL` y corre `npm run dev`.
+Flujo mínimo (detalle en [`README-PROGRAMADORES.md`](./README-PROGRAMADORES.md) y [`pasos/02`](./pasos/02-api-central.md)):
 
-### Scripts útiles
+```bash
+# 1. Genera TU API key (secreto) y pásasela al admin para que la registre:
+openssl rand -hex 24
+
+# 2. Con la key ya registrada, prueba la conexión:
+curl https://isotools-production.up.railway.app/api/v1/health   # {"status":"ok"}
+
+# 3. Publica / consume usando el header x-api-key.
+```
+
+> **Correr la plataforma tú mismo es tarea exclusiva del admin** (deploy en Railway): ver [`pasos/02` § 2.2](./pasos/02-api-central.md). Los programadores nunca levantan la plataforma.
+
+### Scripts útiles (admin)
 
 | Script | Uso |
 |--------|-----|
@@ -130,7 +133,7 @@ openssl rand -hex 24
 Variables que conviene tener en tu tool:
 
 ```bash
-CORE_BASE_URL=https://isotools-production.up.railway.app   # o http://localhost:3000 si corres el core en local
+CORE_BASE_URL=https://isotools-production.up.railway.app
 API_KEY=<tu key>
 ```
 
