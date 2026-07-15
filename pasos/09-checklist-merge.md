@@ -45,8 +45,6 @@ CI hoy (`/.github/workflows/ci.yml`) corre: `npm install`, `npm run lint`, build
 - [ ] 🟢 `scripts/test_<tool_id>.js` corre y produce salida válida _(smoke aislado del handler — paso 8 § 8.2)._
 - [ ] 🟢 POST a `/api/v1/events` (plataforma central) con tu evento prueba devuelve 201. GET con `?since_seq=0&type=<tu_tipo>` lo encuentra (y avanza el `next_seq`).
 - [ ] 🔵 Smoke test end-to-end vía `curl` muestra el evento de respuesta con `correlation_id` correcto. _(Sin bus + sin columna correlation_id, no aplica hoy.)_
-- [ ] 🟢 Dashboard `/dashboard` carga sin error y tu tool aparece en `/agentes/tools/<id>`. _(Lo que renderiza viene del catálogo `tools.json`, no de eventos.)_
-- [ ] 🟡 Reporte `/audit-report` lo agrega a la norma correspondiente (si aplica).
 
 ### Documentación
 
