@@ -108,9 +108,13 @@ La plataforma es un **broker de eventos** con API HTTP y Postgres. Tu tool **sol
 
 Toda ruta bajo `/api/v1/events` exige el header **`x-api-key`**. El catálogo y health son abiertos.
 
+**Cómo consigues tu key (esto es lo PRIMERO que haces):** tú generas un secreto aleatorio y el admin lo registra en la plataforma. Paso a paso en [`README-PROGRAMADORES.md` § Paso 0](./README-PROGRAMADORES.md#paso-0--consigue-tu-api-key-esto-es-lo-primero) y en [`pasos/02-api-central.md` § 2.0](./pasos/02-api-central.md).
+
 ```bash
-# La plataforma te da una key (se imprime UNA sola vez, guárdala como secreto):
-npm run apikey:create mi_tool -- --scopes=events:read,events:write
+# 1. Genera TU secreto (guárdalo, no se vuelve a mostrar):
+openssl rand -hex 24
+# 2. Pásaselo al admin con el nombre de tu tool; él lo registra en Railway
+#    (BOOTSTRAP_API_KEY / BOOTSTRAP_API_KEY_LABEL) y redespliega.
 ```
 
 | Scope | Para qué |
@@ -126,7 +130,7 @@ npm run apikey:create mi_tool -- --scopes=events:read,events:write
 Variables que conviene tener en tu tool:
 
 ```bash
-CORE_BASE_URL=https://<tu-core>.up.railway.app   # o http://localhost:3000 en local
+CORE_BASE_URL=https://isotools-production.up.railway.app   # o http://localhost:3000 si corres el core en local
 API_KEY=<tu key>
 ```
 

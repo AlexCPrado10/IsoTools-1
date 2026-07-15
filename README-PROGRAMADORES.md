@@ -1,213 +1,185 @@
-# README para programadores — rama `feature/filter`
+# README para programadores — vía rápida
 
-Guía práctica de lo que **debes hacer** para trabajar con la plataforma de eventos que entrega esta rama, en el **orden correcto**. Si es tu primer día, sigue los pasos de arriba hacia abajo sin saltarte ninguno.
+Guía corta y **explícita** para conectar tu tool a la plataforma de eventos. Sigue los pasos **en orden**, de arriba hacia abajo. Si es tu primer día, esto es lo único que necesitas leer para empezar; los detalles finos están en [`pasos/`](./pasos/) y en el [Manual de integración del `README.md`](./README.md#manual-de-integración-publicar-y-consumir-eventos).
 
-> Contexto: este repo es **solo-tools** (sin web ni dashboards). Aquí vive el core de ingesta/consumo de eventos entre tools ISO. La orientación general está en [`README.md`](./README.md); la referencia de la plataforma cloud, en [`PLATAFORMA-CLOUD.md`](./PLATAFORMA-CLOUD.md).
-
----
-
-## 1. Qué entrega esta rama
-
-`feature/filter` convierte el endpoint de eventos en una **plataforma de consumo sin over-fetch**. Lo nuevo:
-
-| Capacidad | Para qué sirve |
-|-----------|----------------|
-| **Cursor keyset** (`?since_seq=N`) | Consumo incremental continuo sin re-escanear ni deduplicar en el cliente. |
-| **Filtros server-side** | `type`, `module_id`, `asset_id`, `category`, `severity` — el core filtra, el consumidor no descarga de más. |
-| **`/events/latest`** | La última data por tipo (`DISTINCT ON`), con **cache + ETag/304** para el poll continuo. |
-| **`/events/subscriptions/:toolId`** | Entrega a una tool **solo los tipos que declara consumir** en `tools.json`. |
-| **Ingesta idempotente** | Reintentar el mismo `event_id` no duplica ni re-dispara la cadena. |
-| **Catálogo público** (`/catalog/*`) | Contrato consultable (sin API key) del Event Standard y de productores/consumidores. |
-| **Config central** (`src/config.js`) | Todo lo ajustable por env, leído una sola vez. |
-| **Rate limit + cache en proceso** | Protegen el core del poller mal configurado sin infraestructura extra. |
-| **Bootstrap de API key** | Crear una key desde `BOOTSTRAP_API_KEY` en entornos nuevos (Railway). |
-
-Degradación con gracia: si una base vieja no tiene la columna `seq` o el índice único de `event_id`, la API **sigue funcionando** en modo compatible (ver `src/db/capabilities.js`).
+> **Modelo mental:** la plataforma es un **broker de eventos** ya desplegado. Tu tool solo habla con la plataforma por HTTP (nunca con otra tool). **Publicas** con `POST` y **consumes** con `GET` haciendo *polling* (tú preguntas cada N segundos; no hay push ni webhooks).
 
 ---
 
-## 2. Requisitos previos
+## 🌐 URL base (memorízala)
 
-- Node.js 18+ y npm.
-- Docker + Docker Compose (para el camino recomendado), o un Postgres accesible.
-- `git` con acceso al remoto.
-
----
-
-## 3. Pasos para levantar el ambiente
-
-### Camino A — con Docker (recomendado)
-
-```bash
-# 1. Estás en la rama correcta
-git checkout feature/filter
-
-# 2. Dependencias
-npm install
-
-# 3. Postgres + API
-docker compose --profile api up -d
-
-# 4. Crea una API key (imprime el valor UNA sola vez: cópialo)
-npm run apikey:create mi-cliente -- --scopes=events:read,events:write
-
-# 5. Verifica
-curl http://localhost:3000/api/v1/health
+```
+https://isotools-production.up.railway.app/api/v1
 ```
 
-### Camino B — sin Docker
-
-```bash
-cp .env.example .env          # ajusta DATABASE_URL a tu Postgres
-npm install
-npm run db:migrate            # aplica db/init.sql
-npm run dev                   # nodemon
-```
-
-> El esquema base se crea al arrancar si el Postgres es nuevo. La migración detecta `seq` y el índice único de `event_id` y ajusta las capacidades.
+Todas las rutas de este documento cuelgan de ahí. Ejemplo: el health es
+`https://isotools-production.up.railway.app/api/v1/health`.
 
 ---
 
-## 4. Variables de entorno que debes conocer
+## Paso 0 — Consigue tu API key (esto es LO PRIMERO)
 
-Copia `.env.example` y ajusta según tu entorno. Las que más impactan al consumo:
+**Antes de escribir una sola línea de código**, necesitas una API key. Sin ella, todo `POST`/`GET` de eventos responde `401`.
 
-```bash
-EVENTS_DEFAULT_LIMIT=100     # tamaño de lote por defecto
-EVENTS_MAX_LIMIT=1000        # tope duro (evita ventanas enormes)
+1. **Genera tú mismo un secreto aleatorio.** Cualquiera de estos sirve:
+   ```bash
+   openssl rand -hex 24        # recomendado
+   # o
+   uuidgen
+   ```
+   Guárdalo como un secreto: es TU key y no se vuelve a mostrar.
 
-CACHE_ENABLED=true           # cache en proceso para /latest y catálogo
-CACHE_LATEST_TTL_MS=1500
+2. **Pásale al admin (Carlos) dos datos:**
+   - el **valor** de la key que generaste, y
+   - el **nombre de tu tool** (el *label*, ej. `tool-vision`).
 
-RATE_LIMIT_ENABLED=true      # cuota por API key (ventana fija en memoria)
-RATE_LIMIT_WINDOW_MS=1000
-RATE_LIMIT_MAX=50
+3. **El admin la registra** en Railway → servicio **IsoTools** → **Variables**:
+   ```
+   BOOTSTRAP_API_KEY        = <la key que generaste>
+   BOOTSTRAP_API_KEY_LABEL  = <el nombre de tu tool, ej. tool-vision>
+   BOOTSTRAP_API_KEY_SCOPES = events:read,events:write   # opcional
+   ```
+   Al redesplegar, la plataforma inserta tu key (hasheada, nunca se imprime en logs). Es idempotente: si ya existía, no pasa nada. Después el admin **quita** `BOOTSTRAP_API_KEY` por seguridad.
 
-BUS_CHAIN_TIMEOUT_MS=8000    # tope de la cadena de tools dentro del POST
-```
+4. Listo: ya puedes usar tu key en el header **`x-api-key`**.
 
-Para provisionar una key en un entorno nuevo (Railway) sin correr scripts a mano:
-
-```bash
-BOOTSTRAP_API_KEY=...               # se inserta al arrancar (no se loguea)
-BOOTSTRAP_API_KEY_SCOPES=events:read,events:write
-# QUITA la variable después de usarla.
-```
+> **Scopes:** `events:write` para publicar, `events:read` para consumir. Si tu tool hace ambas (lo normal), pide `events:read,events:write`. El catálogo y el health son abiertos (no piden key).
 
 ---
 
-## 5. Cómo PUBLICAR un evento (productor)
+## Paso 1 — Configura tu entorno
+
+En tu tool (cualquier lenguaje/stack), define dos variables:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/events \
-  -H "x-api-key: TU_API_KEY" \
+export CORE_BASE_URL="https://isotools-production.up.railway.app/api/v1"
+export API_KEY="<tu-key-del-paso-0>"
+```
+
+> La key **jamás** va en el frontend ni se commitea. Vive en tu servidor / en variables de entorno. Añade `.env*` a tu `.gitignore`.
+
+---
+
+## Paso 2 — Verifica que estás conectado
+
+```bash
+curl "$CORE_BASE_URL/health"    # -> {"status":"ok"}     (el proceso responde)
+curl "$CORE_BASE_URL/ready"     # -> {"status":"ready"}  (además hay base de datos)
+```
+
+Si `/health` responde pero un `POST` te da `401`, revisa el header `x-api-key` (no `Authorization`) y que la key no tenga saltos de línea.
+
+---
+
+## Paso 3 — Publica tu primer evento
+
+```bash
+curl -X POST "$CORE_BASE_URL/events" \
+  -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d @sample-event.json
 ```
 
-Reglas que debes respetar:
-
-- El payload debe pasar la validación del **Industrial Event Standard** (`src/data/agents/event-standard.json`).
-- **Reintenta con el mismo `event_id`** si dudas: es idempotente → responde `200 status:"duplicate"` sin re-disparar la cadena. Un evento nuevo responde `201 status:"accepted"`.
-- No dependas de que la cadena de tools termine dentro del POST: si excede `BUS_CHAIN_TIMEOUT_MS`, el evento ya quedó guardado y la cadena termina en segundo plano.
+- El payload debe cumplir el **Industrial Event Standard (IES)**. El contrato exacto (todos los campos requeridos y su forma) está en el [Manual de integración](./README.md#3-el-payload-de-entrada-el-sobre-ies) y en `src/data/agents/event-standard.json`. Hay un ejemplo listo en [`sample-event.json`](./sample-event.json).
+- **Es idempotente:** si reintentas con el mismo `event_id`, no se duplica ni se re-dispara la cadena → responde `200 status:"duplicate"`. Un evento nuevo responde `201 status:"accepted"`.
 
 ---
 
-## 6. Cómo CONSUMIR eventos (elige el patrón correcto)
+## Paso 4 — Consume eventos (elige el patrón correcto)
 
-Todas las lecturas requieren API key con scope `events:read`.
+Todas las lecturas piden `x-api-key` con scope `events:read`.
 
-### 6.1 Consumo incremental continuo → **keyset** (el patrón por defecto)
+### 4.1 Consumo incremental continuo → **cursor `since_seq`** (el patrón por defecto)
 
 ```bash
-# Primer tick: arranca desde 0
-curl -H "x-api-key: $KEY" \
-  "http://localhost:3000/api/v1/events?since_seq=0&type=quality.inspection.completed"
+# Primer tick: arranca en 0
+curl -H "x-api-key: $API_KEY" \
+  "$CORE_BASE_URL/events?since_seq=0&type=CALIBRATION_FAILED"
 
-# La respuesta trae next_seq; úsalo en el siguiente tick
-curl -H "x-api-key: $KEY" \
-  "http://localhost:3000/api/v1/events?since_seq=<next_seq>&type=quality.inspection.completed"
+# La respuesta trae next_seq. Guárdalo y úsalo en el siguiente tick:
+curl -H "x-api-key: $API_KEY" \
+  "$CORE_BASE_URL/events?since_seq=<next_seq>&type=CALIBRATION_FAILED"
 ```
 
-- Devuelve `seq > since_seq` en orden ascendente. **No hay solapes ni necesitas deduplicar.**
-- Guarda `next_seq` como tu cursor entre ticks.
-- Filtra server-side con `type` (repetido `?type=A&type=B` o CSV `?type=A,B`), `module_id`, `asset_id`, `category`, `severity`.
+Devuelve solo `seq > since_seq` en orden ascendente: **no hay solapes ni necesitas deduplicar.** `next_seq` es tu cursor entre ticks.
 
-### 6.2 "Solo la última data por tipo" → **/events/latest** (poll barato)
+### 4.2 "Solo la última data por tipo" → **`/events/latest`** (poll barato con ETag)
 
 ```bash
-curl -H "x-api-key: $KEY" -H 'If-None-Match: W/"42"' \
-  "http://localhost:3000/api/v1/events/latest?type=quality.inspection.completed"
+curl -H "x-api-key: $API_KEY" -H 'If-None-Match: W/"42"' \
+  "$CORE_BASE_URL/events/latest?type=CALIBRATION_FAILED"
 ```
 
-- Devuelve el evento más reciente por cada `type`.
-- Manda el `ETag` que recibiste en `If-None-Match`: si no cambió, responde **304** (cero cuerpo, ahorra ancho de banda en el poll).
+Devuelve el evento más reciente por cada `type`. Reenvía el `ETag` que recibiste en `If-None-Match`: si nada cambió, responde `304` (cuerpo vacío, ahorra ancho de banda en el poll).
 
-### 6.3 "Lo que mi tool consume" → **/events/subscriptions/:toolId**
+### 4.3 "Lo que MI tool consume" → **`/events/subscriptions/:toolId`**
 
 ```bash
-curl -H "x-api-key: $KEY" \
-  "http://localhost:3000/api/v1/events/subscriptions/manage_nonconformances?since_seq=0"
+curl -H "x-api-key: $API_KEY" \
+  "$CORE_BASE_URL/events/subscriptions/manage_nonconformances?since_seq=0"
 ```
 
-- Entrega solo los tipos que esa tool declara consumir en `tools.json`. **El consumidor no necesita saber quién produce.** También es keyset (`since_seq` / `next_seq`).
+Entrega solo los tipos que tu tool declara consumir en `tools.json`. **No necesitas saber quién produce.** También usa cursor (`since_seq`/`next_seq`).
 
-### 6.4 Trazabilidad → **/events/chain/:correlationId**
+### 4.4 Trazabilidad → **`/events/chain/:correlationId`**
 
 ```bash
-curl -H "x-api-key: $KEY" \
-  "http://localhost:3000/api/v1/events/chain/<correlation_id>"
+curl -H "x-api-key: $API_KEY" "$CORE_BASE_URL/events/chain/<correlation_id>"
 ```
 
-- Cadena causal completa en orden cronológico (evidencia ISO).
+Cadena causal completa en orden cronológico (evidencia ISO).
 
-### 6.5 Descubrir el contrato → **/catalog** (sin API key)
+### 4.5 Descubrir el contrato → **`/catalog`** (sin API key)
 
 ```bash
-curl http://localhost:3000/api/v1/catalog/event-standard
-curl http://localhost:3000/api/v1/catalog/events
-curl http://localhost:3000/api/v1/catalog/tools/manage_nonconformances
+curl "$CORE_BASE_URL/catalog/event-standard"
+curl "$CORE_BASE_URL/catalog/events"
+curl "$CORE_BASE_URL/catalog/tools/manage_nonconformances"
 ```
 
 ---
 
-## 7. Pasos para construir una tool consumidora
+## Paso 5 — Si además vas a escribir un handler DENTRO de este repo
 
-1. **Declara qué consume** tu tool en `src/data/agents/tools.json` (array `consumes`). Sin esto, `/subscriptions` no le entrega nada.
-2. Crea el handler en `src/tools/` y regístralo en `src/tools/index.js`.
-3. Consume con **keyset**: persiste tu `next_seq` y arranca cada tick desde ahí. Usa `/subscriptions/:toolId` para no acoplarte a productores.
-4. Respeta el rate limit: si recibes **429**, respeta `Retry-After`. No hagas poll en bucle caliente; usa un intervalo razonable y apóyate en el `ETag` de `/latest`.
-5. Si tu cambio afecta un contrato tool↔tool, trabájalo en su rama `comm/<source>__<target>` y **anota la bitácora** en `cerebro/comunicaciones/`.
+Si tu tool no es un servicio externo sino un handler que vive en `src/tools/`, sigue el roadmap completo en [`pasos/`](./pasos/) (1 → 10). Resumen de lo que te toca:
 
----
-
-## 8. Pruebas rápidas
-
-```bash
-npm run seed:events 50     # inserta eventos de prueba
-npm run seed:stream        # envía eventos al endpoint (usa API_KEY)
-npm run sim:iso            # simula la cadena del paquete ISO 9001
-npm run lint               # eslint
-```
-
-Checklist antes de tu PR:
-
-- [ ] `npm run lint` sin errores.
-- [ ] Los endpoints que tocas responden con la API key correcta y su scope.
-- [ ] Los filtros `type/module_id/asset_id/category/severity` devuelven lo esperado.
-- [ ] El cursor `next_seq` avanza y no repite eventos entre ticks.
-- [ ] Si cambiaste un contrato, la bitácora del cerebro está actualizada.
+1. Declara qué consume/produce tu tool en `src/data/agents/tools.json`.
+2. Crea `src/tools/<tu_tool_id>.js` (exporta `meta` + `handler`) y regístralo en `src/tools/index.js`.
+3. Registra la regla en `communication-rules.json` que conecta otros eventos con tu tool.
+4. Prueba (paso 8) y pasa el checklist (paso 9).
 
 ---
 
-## 9. Flujo de git en esta rama
+## Tabla de endpoints
 
-```bash
-git checkout feature/filter
-git pull --ff-only
+| Método | Ruta (bajo la URL base) | Scope | Qué hace |
+|--------|-------------------------|-------|----------|
+| `POST` | `/events` | `events:write` | Publica (idempotente por `event_id`). |
+| `GET`  | `/events?since_seq=N` | `events:read` | Consumo incremental por cursor (**recomendado**). |
+| `GET`  | `/events?start=&end=` | `events:read` | Rango por fecha (ISO), modo compat. |
+| `GET`  | `/events/latest?type=` | `events:read` | Última data por tipo (cache + ETag/304). |
+| `GET`  | `/events/subscriptions/:toolId` | `events:read` | Solo los tipos que esa tool consume. |
+| `GET`  | `/events/chain/:correlationId` | `events:read` | Cadena causal de un `correlation_id`. |
+| `GET`  | `/catalog/*` | — (abierto) | Contrato público: standard, eventos, tools. |
+| `GET`  | `/health` · `/ready` | — (abierto) | Liveness · readiness. |
 
-# trabaja, commitea con mensajes claros (feat/fix/docs …)
-git push origin feature/filter
-```
+**Filtros de `GET /events`** (server-side, evitan descargar de más): `type` (repetido `?type=A&type=B` o CSV `?type=A,B`), `module_id`, `asset_id`, `category`, `severity`, `limit`.
 
-Cuando el consumo quede estable, abre **PR `feature/filter` → `main`**. No mezcles cambios de contrato tool↔tool aquí: esos van en su rama `comm/<source>__<target>` (ver [`README.md`](./README.md), sección de ramas).
+---
+
+## Errores comunes
+
+| Código | Significa | Qué haces |
+|--------|-----------|-----------|
+| `401` | Falta o está mal la API key | Revisa el header `x-api-key` (no `Authorization`), sin saltos de línea. |
+| `403` | Tu key no tiene el scope | Pide al admin registrar la key con `events:read` y/o `events:write`. |
+| `429` | Rate limit excedido (poll muy agresivo) | Respeta el header `Retry-After`; baja la frecuencia y apóyate en el `ETag` de `/latest`. |
+| `400` | Payload no cumple el IES | Compara contra `/catalog/event-standard` y el [Manual](./README.md#3-el-payload-de-entrada-el-sobre-ies). |
+
+---
+
+## A dónde seguir
+
+- **Contrato completo (payloads, ejemplos, código de un consumidor):** [Manual de integración en `README.md`](./README.md#manual-de-integración-publicar-y-consumir-eventos).
+- **Roadmap para escribir una tool en el repo:** [`pasos/`](./pasos/) (1 → 10).
+- **Qué hace cada tool y con quién habla:** cerebro Obsidian en [`cerebro/`](./cerebro/).

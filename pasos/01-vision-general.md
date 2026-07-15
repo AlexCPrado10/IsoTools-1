@@ -31,7 +31,7 @@ El sistema tiene tres capas. **Tu tool vive en la capa de en medio.**
                              ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │  CAPA 3 — CONSUMIDORES                                                │
-│  Dashboard (/dashboard) · Reporte ISO (/audit-report) · otras tools   │
+│  Otras tools (polling GET /events) · consumidores externos            │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 

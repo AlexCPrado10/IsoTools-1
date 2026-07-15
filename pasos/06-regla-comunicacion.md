@@ -32,7 +32,7 @@ Hay tres formas teóricas de que tu tool reciba eventos. En este proyecto **solo
 
 | Modo | Cómo funciona | ¿Lo usamos? |
 |---|---|---|
-| Pull | La tool pregunta cada N segundos `GET /api/v1/events?since_id=X` | ❌ No |
+| Pull | La tool pregunta cada N segundos `GET /api/v1/events?since_seq=N` (cursor keyset) | ❌ No |
 | Push externo (webhook HTTP) | La API hace `POST https://<tool>/run` cuando llega un evento | ❌ No |
 | **Push in-process** | La tool es una función Node y el bus la importa y llama directamente | ✅ Sí |
 
