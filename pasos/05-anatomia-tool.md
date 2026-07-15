@@ -24,7 +24,7 @@ A diferencia de versiones anteriores de este manual, la capa de ejecución **ya 
 | Cadena causal `correlation_id` + `causation_id` | ✅ Columnas en `industrial_events` + endpoint `GET /api/v1/events/chain/:correlationId`. |
 | Bus auto-rellena `event_id`/`timestamp`/`module`/`correlation_id`/`causation_id` | ✅ Lo hace `eventBus.buildChildEvent`. |
 
-> **Pruébalo ya:** con la API local levantada, `npm run sim:iso` dispara una cadena completa. Ver [Paso 8](./08-pruebas-locales.md) y `docs/SIMULACION_PASO_A_PASO.md`.
+> **Pruébalo ya:** con tu `API_KEY` y `API_BASE_URL` apuntando a la plataforma central, `npm run sim:iso` dispara una cadena completa. Ver [Paso 8](./08-pruebas-locales.md) y `docs/SIMULACION_PASO_A_PASO.md`.
 
 **Qué haces cuando agregas tu tool** (de verdad corre, no es aire):
 

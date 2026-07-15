@@ -255,19 +255,17 @@ Dos bloques que el doc no expandía y conviene tener en mente:
 
 **Automáticamente al arrancar la API.** No tienes que correr ningún script de carga. El loader central es **`src/services/agentDataService.js`** — importa los 5 JSONs y los expone a las rutas y a los servicios derivados.
 
-| Archivo | Quién lo lee (importante) |
-|---|---|
-| `event-standard.json` | `agentDataService.js`, `agentDemoService.js`, `routes/agentesRoutes.js` (no el validador — ver § 3.2) |
-| `tools.json` | `agentDataService.js`, `agentDemoService.js`, `controllers/agentesController.js` |
-| `communication-rules.json` | `agentDataService.js`, `routes/agentesRoutes.js` |
-| `agents.json` | `agentDataService.js`, `controllers/agentesController.js`, `isoMappingService.js` (para reporte ISO) |
-| `tools-dev-spec.json` | `agentDataService.js` |
+| Archivo                    | Quién lo lee (importante)                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `event-standard.json`      | `agentDataService.js`, `agentDemoService.js`, `routes/agentesRoutes.js` (no el validador — ver § 3.2) |
+| `tools.json`               | `agentDataService.js`, `agentDemoService.js`, `controllers/agentesController.js`                      |
+| `communication-rules.json` | `agentDataService.js`, `routes/agentesRoutes.js`                                                      |
+| `agents.json`              | `agentDataService.js`, `controllers/agentesController.js`, `isoMappingService.js` (para reporte ISO)  |
+| `tools-dev-spec.json`      | `agentDataService.js`                                                                                 |
 
-**Cuando editas un archivo, ¿hay que reiniciar?**
+**Cuando editas un archivo, ¿cuándo toma efecto?**
 
-- **Local con `docker compose --profile api up -d`**: sí, `docker compose restart api` para que cargue el nuevo JSON.
-- **En desarrollo con `npm run dev` (nodemon)**: se recarga solo al detectar cambios.
-- **En Railway**: el push a `main` redespliega automáticamente y arranca con la versión nueva.
+Tu cambio en los JSON entra en producción **cuando se mergea a `main`**: Railway redespliega automáticamente y arranca con la versión nueva. No hay nada que reiniciar a mano — no corres la plataforma en local (todo vive en la central, ver [Paso 2](./02-api-central.md)).
 
 ---
 
