@@ -50,25 +50,79 @@ IsoTools/
 
 ---
 
-## Cómo conectarte (todos usan la plataforma central)
+## Vía rápida — tu primer día (todos usan la plataforma central)
 
-**No se corre nada en local.** Todas las tools se conectan a la misma plataforma desplegada en Railway:
+**No se corre nada en local.** Todas las tools se conectan a la misma plataforma desplegada en Railway. Memoriza la URL base:
 
 ```
 https://isotools-production.up.railway.app/api/v1
 ```
 
-Flujo mínimo (detalle en [`README-PROGRAMADORES.md`](./README-PROGRAMADORES.md) y [`pasos/02`](./pasos/02-api-central.md)):
+Sigue estos pasos **en orden**. El contrato completo (payloads, filtros, ejemplos) está en el [Manual de integración](#manual-de-integración-publicar-y-consumir-eventos), más abajo.
+
+### Paso 0 — Consigue tu API key (esto es LO PRIMERO)
+
+Sin key, todo `POST`/`GET` de eventos responde `401`. El catálogo y el health son abiertos (no piden key).
+
+1. **Genera tú mismo un secreto aleatorio** y guárdalo (no se vuelve a mostrar):
+   ```bash
+   openssl rand -hex 24        # recomendado
+   # o
+   uuidgen
+   ```
+2. **Pásale al admin (Carlos) dos datos:** el **valor** de la key y el **nombre de tu tool** (el *label*, ej. `tool-vision`).
+3. **El admin la registra** en Railway → servicio **IsoTools** → **Variables**:
+   ```
+   BOOTSTRAP_API_KEY        = <la key que generaste>
+   BOOTSTRAP_API_KEY_LABEL  = <el nombre de tu tool, ej. tool-vision>
+   BOOTSTRAP_API_KEY_SCOPES = events:read,events:write   # opcional
+   ```
+   Al redesplegar, la plataforma inserta tu key (hasheada, nunca en logs). Es idempotente. Después el admin **quita** `BOOTSTRAP_API_KEY` por seguridad.
+4. Listo: ya puedes usar tu key en el header **`x-api-key`**.
+
+> **Scopes:** `events:write` para publicar, `events:read` para consumir. Si tu tool hace ambas (lo normal), pide `events:read,events:write`.
+
+### Paso 1 — Configura tu entorno
 
 ```bash
-# 1. Genera TU API key (secreto) y pásasela al admin para que la registre:
-openssl rand -hex 24
-
-# 2. Con la key ya registrada, prueba la conexión:
-curl https://isotools-production.up.railway.app/api/v1/health   # {"status":"ok"}
-
-# 3. Publica / consume usando el header x-api-key.
+export CORE_BASE_URL="https://isotools-production.up.railway.app/api/v1"
+export API_KEY="<tu-key-del-paso-0>"
 ```
+
+> La key **jamás** va en el frontend ni se commitea: vive en tu servidor / en variables de entorno. Añade `.env*` a tu `.gitignore`.
+
+### Paso 2 — Verifica que estás conectado
+
+```bash
+curl "$CORE_BASE_URL/health"    # -> {"status":"ok"}     (el proceso responde)
+curl "$CORE_BASE_URL/ready"     # -> {"status":"ready"}  (además hay base de datos)
+```
+
+Si `/health` responde pero un `POST` te da `401`, revisa el header `x-api-key` (no `Authorization`) y que la key no tenga saltos de línea.
+
+### Paso 3 — Publica tu primer evento
+
+```bash
+curl -X POST "$CORE_BASE_URL/events" \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @sample-event.json
+```
+
+El payload debe cumplir el **Industrial Event Standard (IES)** (ver [§ 3](#3-el-payload-de-entrada-el-sobre-ies); hay un ejemplo listo en [`sample-event.json`](./sample-event.json)). Es **idempotente**: reintentar con el mismo `event_id` responde `200 status:"duplicate"`; un evento nuevo responde `201 status:"accepted"`.
+
+### Paso 4 — Consume (elige el patrón correcto)
+
+Ver [§ 5](#5-consumir-cómo-pedir-solo-los-datos-que-necesitas) para el detalle. En corto:
+
+- **Consumo incremental continuo** → cursor `since_seq` (patrón por defecto).
+- **Última data por tipo** → `/events/latest` (poll barato con ETag/304).
+- **Solo lo que MI tool consume** → `/events/subscriptions/:toolId`.
+- **Trazabilidad** → `/events/chain/:correlationId`.
+
+### Paso 5 — Si vas a escribir un handler DENTRO de este repo
+
+Si tu tool no es un servicio externo sino un handler en `src/tools/`, sigue el roadmap completo en [`pasos/`](./pasos/) (1 → 10). Resumen: declara `consumes`/`produces` en `tools.json`, crea `src/tools/<tu_tool_id>.js` (`meta` + `handler`) y regístralo en `src/tools/index.js`, añade la regla en `communication-rules.json`, prueba y pasa el checklist.
 
 > **Correr la plataforma tú mismo es tarea exclusiva del admin** (deploy en Railway): ver [`pasos/02` § 2.2](./pasos/02-api-central.md). Los programadores nunca levantan la plataforma.
 
@@ -105,13 +159,35 @@ La plataforma es un **broker de eventos** con API HTTP y Postgres. Tu tool **sol
 
 > Si eres tool B y necesitas "lo último que publicó la tool A", no le preguntas a A: le pides a la plataforma **el último evento del tipo que A produce** (sección 5.1).
 
+### Referencia rápida: endpoints
+
+| Método | Ruta (bajo la URL base) | Scope | Qué hace |
+|--------|-------------------------|-------|----------|
+| `POST` | `/events` | `events:write` | Publica (idempotente por `event_id`). |
+| `GET`  | `/events?since_seq=N` | `events:read` | Consumo incremental por cursor (**recomendado**). |
+| `GET`  | `/events?start=&end=` | `events:read` | Rango por fecha (ISO), modo compat. |
+| `GET`  | `/events/latest?type=` | `events:read` | Última data por tipo (cache + ETag/304). |
+| `GET`  | `/events/subscriptions/:toolId` | `events:read` | Solo los tipos que esa tool consume. |
+| `GET`  | `/events/chain/:correlationId` | `events:read` | Cadena causal de un `correlation_id`. |
+| `GET`  | `/catalog/*` | — (abierto) | Contrato público: standard, eventos, tools. |
+| `GET`  | `/health` · `/ready` | — (abierto) | Liveness · readiness. |
+
+### Referencia rápida: errores comunes
+
+| Código | Significa | Qué haces |
+|--------|-----------|-----------|
+| `401` | Falta o está mal la API key | Revisa el header `x-api-key` (no `Authorization`), sin saltos de línea. |
+| `403` | Tu key no tiene el scope | Pide al admin registrar la key con `events:read` y/o `events:write`. |
+| `429` | Rate limit excedido (poll muy agresivo) | Respeta el header `Retry-After`; baja la frecuencia y apóyate en el `ETag` de `/latest`. |
+| `400` | Payload no cumple el IES | Compara contra `/catalog/event-standard` y el [§ 3](#3-el-payload-de-entrada-el-sobre-ies). |
+
 ---
 
 ## 2. Conectarte: URL, API key y scopes
 
 Toda ruta bajo `/api/v1/events` exige el header **`x-api-key`**. El catálogo y health son abiertos.
 
-**Cómo consigues tu key (esto es lo PRIMERO que haces):** tú generas un secreto aleatorio y el admin lo registra en la plataforma. Paso a paso en [`README-PROGRAMADORES.md` § Paso 0](./README-PROGRAMADORES.md#paso-0--consigue-tu-api-key-esto-es-lo-primero) y en [`pasos/02-api-central.md` § 2.0](./pasos/02-api-central.md).
+**Cómo consigues tu key (esto es lo PRIMERO que haces):** tú generas un secreto aleatorio y el admin lo registra en la plataforma. Paso a paso en la [Vía rápida § Paso 0](#paso-0--consigue-tu-api-key-esto-es-lo-primero), más arriba, y en [`pasos/02-api-central.md` § 2.0](./pasos/02-api-central.md).
 
 ```bash
 # 1. Genera TU secreto (guárdalo, no se vuelve a mostrar):

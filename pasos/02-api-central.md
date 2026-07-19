@@ -186,7 +186,7 @@ curl "$API_BASE_URL/api/v1/events?since_seq=0&type=CALIBRATION_FAILED" \
   -H "x-api-key: $API_KEY"
 ```
 
-Otras formas de consumir: `GET /events/latest?type=…` (última data por tipo, con ETag/304) y `GET /events/subscriptions/<tu_tool_id>?since_seq=0` (solo lo que tu tool declara consumir). Detalle completo: [`README-PROGRAMADORES.md`](../README-PROGRAMADORES.md) y el Manual del `README.md`.
+Otras formas de consumir: `GET /events/latest?type=…` (última data por tipo, con ETag/304) y `GET /events/subscriptions/<tu_tool_id>?since_seq=0` (solo lo que tu tool declara consumir). Detalle completo: la [Vía rápida](../README.md#vía-rápida--tu-primer-día-todos-usan-la-plataforma-central) y el Manual del `README.md`.
 
 ### Ver la cadena causal de un evento
 
