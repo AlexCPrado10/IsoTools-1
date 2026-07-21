@@ -2,6 +2,8 @@
 
 > [⬅ Volver al roadmap](../README.md)
 
+> **⚠️ Este paso es solo para tools NATIVAS (admin/core).** Aplica únicamente si tu tool vive **dentro de este repo** y la corre el bus. Si tu tool es **externa** (lo normal), no escribes ningún handler aquí: publicas y consumes por la API. Ver el [Manual de integración del README](../README.md#manual-de-integración-publicar-y-consumir-eventos) y el banner del [Paso 1](./01-vision-general.md).
+
 ## Qué vas a lograr en este paso
 
 Ver el **esqueleto exacto** de una tool y las 7 reglas que tu `handler` debe cumplir. Al terminar tendrás un archivo `.js` que el bus puede ejecutar sin modificaciones adicionales.

@@ -2,6 +2,8 @@
 
 > [⬅ Volver al roadmap](../README.md)
 
+> **⚠️ Solo para tools NATIVAS (admin/core).** `communication-rules.json` solo lo usa el bus para auto-disparar handlers **dentro del repo**. Una tool **externa** no crea reglas: reacciona por su cuenta consumiendo el tipo de evento por la API. Ver el banner del [Paso 1](./01-vision-general.md).
+
 ## Qué vas a lograr en este paso
 
 Aprender a **declarar quién dispara a quién** en `communication-rules.json`. Esto es lo que conecta tu tool con el resto del sistema. Sin una regla aquí, tu tool nunca se va a ejecutar — aunque esté perfectamente escrita.

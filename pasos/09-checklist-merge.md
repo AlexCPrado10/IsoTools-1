@@ -2,6 +2,8 @@
 
 > [⬅ Volver al roadmap](../README.md)
 
+> **⚠️ Solo para tools NATIVAS (admin/core).** Este checklist es para el PR que mergea un handler dentro de este repo. Una tool **externa** no mergea nada aquí: su código vive en su propio repo. Ver el banner del [Paso 1](./01-vision-general.md).
+
 ## Qué vas a lograr en este paso
 
 Tener una lista **única y exhaustiva** que recorres antes de abrir el PR. Si algo está en rojo, **no se mergea**. Incluye también la tabla de errores comunes y el apéndice de campos para que tengas todo a la mano sin abrir otros pasos.
