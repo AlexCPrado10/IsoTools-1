@@ -26,6 +26,8 @@ app.use(morgan(LOG_LEVEL));
 
 // API de tools
 app.use('/api/v1/events', eventsRouter);
+import artifactsRouter from './routes/artifactsRoutes.js';
+app.use('/api/v1/artifacts', artifactsRouter);
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', time: new Date().toISOString() });
 });

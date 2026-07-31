@@ -144,3 +144,62 @@ Quién edita cada uno y cuándo: ver **[`pasos/03-archivos-json.md`](./pasos/03-
 - **16 tools implementadas** (handler en `src/tools/`): paquete de **calidad ISO 9001**.
 - **109 tools en catálogo** listas para implementar.
 - **90 comunicaciones** declaradas en `communication-rules.json`.
+
+---
+
+## Bootstrap API Keys (despliegue) — Instrucción rápida
+
+PASO 0 — Genera tu API key local (elige un valor secreto y guárdalo en un secret manager). Ejemplo (equivalente a `openssl rand -hex 24`):
+
+```bash
+# Generar 24 bytes hex (Linux/Mac)
+openssl rand -hex 24
+# Alternativa con Node.js (si no tienes openssl):
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+```
+
+Qué enviar al administrador de la plataforma (ej. Railway)
+--------------------------------------------------------
+Para registrar una API key bootstrap en el despliegue el admin espera **dos/tre datos** por tool:
+- el valor de la key (raw, solo se muestra una vez)
+- el label (nombre de la tool)
+- las scopes separadas por comas (ej: events:read,events:write)
+
+Variables de entorno de ejemplo que el admin deberá setear en el servicio antes del redeploy (ejemplo por tool):
+
+# Ejemplo para la tool `calculate_control_charts`
+Bootstrap_api_key= <LA_KEY_GENERADA_PARA_CALCULATE_CONTROL_CHARTS>
+Bootstrap_api_key_label= calculate_control_charts
+Bootstrap_api_key_scopes= events:read,events:write
+
+# Ejemplo para la tool `detect_business_anomalies`
+Bootstrap_api_key= <LA_KEY_GENERADA_PARA_DETECT_BUSINESS_ANOMALIES>
+Bootstrap_api_key_label= detect_business_anomalies
+Bootstrap_api_key_scopes= events:read,events:write
+
+# Ejemplo para la tool `generate_kpis`
+Bootstrap_api_key= <LA_KEY_GENERADA_PARA_GENERATE_KPIS>
+Bootstrap_api_key_label= generate_kpis
+Bootstrap_api_key_scopes= events:read,events:write
+
+NOTA: algunos despliegues usan nombres distintos; si el equipo de operaciones pidió exactamente estas claves con signos, provee también la forma literal que pidan. Ejemplo alternativo (literal que apareció en las instrucciones):
+
+Bootstrap_api_key
+Bootstrap_api_key_label
+Bootstrap_api+key+scopes  ← (si el admin lo solicitó así, usar esa clave; la forma preferida es `Bootstrap_api_key_scopes`)
+
+Proceso que sigue el admin
+-------------------------
+1. El admin añade las variables Bootstrap_* en el panel del servicio (Railway / Vercel / Docker env) y redeploya la app.
+2. Durante el arranque la aplicación detecta las variables Bootstrap_* y registra la key (se guarda solo el hash) en la tabla `api_keys`.
+3. El admin elimina las variables Bootstrap_* del entorno por seguridad.
+4. El raw key debe guardarse en un Secret Manager y entregarse al propietario de la tool (no se vuelve a mostrar).
+
+Recomendaciones de seguridad
+---------------------------
+- Nunca commitear raw keys en el repositorio.
+- Guardar el raw key en un Secret Manager (AWS Secrets Manager, Azure Key Vault, Vault).
+- Usar scopes mínimos: `events:read` para consumo, `events:write` para publicar eventos. Si la tool hace ambas cosas, pedir ambos scopes.
+- Rotar y revocar claves periódicamente (procedimiento en `scripts/README.md`).
+
+Si quieres, preparo los tres valores ejemplo (sin el raw key) listos para pegar al admin en un mensaje con el formato exacto. También puedo abrir un pequeño PR que añada esta sección a `scripts/README.md` si prefieres tener la instrucción allí en vez del README principal.
