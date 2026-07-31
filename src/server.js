@@ -31,6 +31,7 @@ import { ensureSchema } from './db/migrate.js';
 import { bootstrapApiKey } from './db/bootstrapApiKey.js';
 import pool, { pingDb } from './db/index.js';
 import eventsRouter from './routes/eventsRoutes.js';
+import artifactsRouter from './routes/artifactsRoutes.js';
 import catalogRouter from './routes/catalogRoutes.js';
 import consoleRouter from './routes/consoleRoutes.js';
 import authRouter from './routes/authRoutes.js';
@@ -72,6 +73,7 @@ app.use('/auth', authRouter);
 
 // API de tools (maquina), catalogo (publico) y consola (humano).
 app.use('/api/v1/events', eventsRouter);
+app.use('/api/v1/artifacts', artifactsRouter);
 app.use('/api/v1/catalog', catalogRouter);
 app.use('/api/v1/console', consoleRouter);
 
