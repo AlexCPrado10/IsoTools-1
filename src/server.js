@@ -26,6 +26,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import express from 'express';
 import morgan from 'morgan';
+import fs from 'node:fs';
+import path from 'node:path';
 import config from './config.js';
 import { ensureSchema } from './db/migrate.js';
 import { bootstrapApiKey } from './db/bootstrapApiKey.js';
@@ -41,6 +43,7 @@ import { createSpaRouter } from './middleware/spa.js';
 import { startConnectors, stopConnectors } from './connectors/runtime.js';
 
 const app = express();
+const UI_DIST_DIR = process.env.UI_DIST_DIR;
 
 // Detras de Railway/proxy: confia en X-Forwarded-* para que req.ip sea el real
 // (lo usa el rate limit cuando no hay API key).
@@ -58,6 +61,9 @@ app.use(attachSession);
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', time: new Date().toISOString() });
 });
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'isotools', tool: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
+});
 
 app.get('/api/v1/ready', async (req, res) => {
   try {
@@ -65,6 +71,14 @@ app.get('/api/v1/ready', async (req, res) => {
     res.json({ status: 'ready', service: 'isotools', time: new Date().toISOString() });
   } catch (err) {
     res.status(503).json({ status: 'not_ready', error: err.message });
+  }
+});
+app.get('/ready', async (req, res) => {
+  try {
+    await pingDb();
+    return res.json({ status: 'ready', service: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
+  } catch (error) {
+    return res.status(503).json({ status: 'not_ready', service: process.env.TOOL_ID || 'isotools', error: error.message });
   }
 });
 
@@ -86,6 +100,13 @@ app.use('/api/v1/connectors', connectorsRouter);
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'not_found', path: req.originalUrl });
 });
+
+if (UI_DIST_DIR && fs.existsSync(UI_DIST_DIR)) {
+  app.use(express.static(UI_DIST_DIR));
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(UI_DIST_DIR, 'index.html'));
+  });
+}
 
 // El dashboard compilado. Si no hay build, el core sirve solo la API.
 const spaRouter = createSpaRouter();
