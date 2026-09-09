@@ -13,6 +13,8 @@
 import 'dotenv/config.js';
 import express from 'express';
 import morgan from 'morgan';
+import fs from 'node:fs';
+import path from 'node:path';
 import { ensureSchema } from './db/migrate.js';
 import eventsRouter from './routes/eventsRoutes.js';
 
@@ -20,6 +22,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'dev';
+const UI_DIST_DIR = process.env.UI_DIST_DIR;
 
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(LOG_LEVEL));
@@ -28,9 +31,19 @@ app.use(morgan(LOG_LEVEL));
 app.use('/api/v1/events', eventsRouter);
 import artifactsRouter from './routes/artifactsRoutes.js';
 app.use('/api/v1/artifacts', artifactsRouter);
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'isotools', tool: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
+});
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', time: new Date().toISOString() });
 });
+
+if (UI_DIST_DIR && fs.existsSync(UI_DIST_DIR)) {
+  app.use(express.static(UI_DIST_DIR));
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(UI_DIST_DIR, 'index.html'));
+  });
+}
 
 // Manejo de errores (JSON únicamente — no hay vistas que renderizar)
 app.use((err, req, res, next) => {

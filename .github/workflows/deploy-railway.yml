@@ -1,0 +1,62 @@
+name: Deploy ISO Tools to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: Deploy all three tools
+        type: boolean
+        default: false
+
+concurrency:
+  group: railway-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.tool.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool:
+          - name: calculate_control_charts
+            service: calculate-control-charts
+            dockerfile: tools/calculate_control_charts/Docker/Dockerfile
+            path: tools/calculate_control_charts
+          - name: detect_business_anomalies
+            service: detect-business-anomalies
+            dockerfile: tools/detect_business_anomalies/Docker/Dockerfile
+            path: tools/detect_business_anomalies
+          - name: generate_kpis
+            service: generate-kpis
+            dockerfile: tools/generate_kpis/Docker/Dockerfile
+            path: tools/generate_kpis
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Railway token
+        run: test -n "$RAILWAY_TOKEN" || (echo "::error::Missing RAILWAY_TOKEN repository secret" && exit 1)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+      - name: Deploy when requested
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_all }}
+        run: railway up --service "${{ matrix.tool.service }}" --dockerfile "${{ matrix.tool.dockerfile }}" --ci
+      - name: Deploy first push
+        if: ${{ github.event_name == 'push' && github.event.before == '0000000000000000000000000000000000000000' }}
+        run: railway up --service "${{ matrix.tool.service }}" --dockerfile "${{ matrix.tool.dockerfile }}" --ci
+      - name: Deploy changed tool
+        if: ${{ github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000' }}
+        run: |
+          if git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- "${{ matrix.tool.path }}" src package.json package-lock.json; then
+            echo "No files for ${{ matrix.tool.name }} changed; skipping."
+          else
+            railway up --service "${{ matrix.tool.service }}" --dockerfile "${{ matrix.tool.dockerfile }}" --ci
+          fi
