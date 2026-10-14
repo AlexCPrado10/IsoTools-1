@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import { checkCoreConnection, fetchToolSubscription, getCoreConfig, publishCoreEvent } from '../src/services/coreClient.js';
 
 const env = {
-  ISOTOOLS_API_URL: 'https://isotools-production.up.railway.app/api/v1/',
+  ISOTOOLS_API_URL: 'https://api-events.orcalabs.mx/api/v1/',
   ISOTOOLS_API_KEY: 'test-api-key'
 };
 
 test('requires the shared API URL to include /api/v1 and a key', () => {
   assert.deepEqual(getCoreConfig(env), {
-    baseUrl: 'https://isotools-production.up.railway.app/api/v1',
+    baseUrl: 'https://api-events.orcalabs.mx/api/v1',
     apiKey: 'test-api-key'
   });
-  assert.throws(() => getCoreConfig({ ...env, ISOTOOLS_API_URL: 'https://tools.orcalabs.mx' }), /end in \/api\/v1/);
+  assert.throws(() => getCoreConfig({ ...env, ISOTOOLS_API_URL: 'https://api-events.orcalabs.mx' }), /end in \/api\/v1/);
   assert.throws(() => getCoreConfig({ ...env, ISOTOOLS_API_KEY: '' }), /ISOTOOLS_API_URL and ISOTOOLS_API_KEY/);
 });
 
@@ -46,7 +46,7 @@ test('publishes events using the registered API key', async () => {
   const event = { event_id: 'test-1', event: { type: 'TEST_EVENT' }, data: {} };
 
   assert.deepEqual(await publishCoreEvent(event, { env, fetchImpl }), { status: 'accepted' });
-  assert.equal(request.url, 'https://isotools-production.up.railway.app/api/v1/events');
+  assert.equal(request.url, 'https://api-events.orcalabs.mx/api/v1/events');
   assert.equal(request.options.headers['x-api-key'], env.ISOTOOLS_API_KEY);
   assert.deepEqual(JSON.parse(request.options.body), event);
 });
@@ -66,7 +66,7 @@ test('reads a tool subscription with its cursor and read key', async () => {
     { sinceSeq: 12, limit: 25 },
     { env, fetchImpl }
   ), { events: [], next_seq: 12 });
-  assert.equal(request.url, 'https://isotools-production.up.railway.app/api/v1/events/subscriptions/calculate_control_charts?limit=25&since_seq=12');
+  assert.equal(request.url, 'https://api-events.orcalabs.mx/api/v1/events/subscriptions/calculate_control_charts?limit=25&since_seq=12');
   assert.equal(request.options.headers['x-api-key'], env.ISOTOOLS_API_KEY);
 });
 
