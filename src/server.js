@@ -42,7 +42,7 @@ import connectorsRouter from './routes/connectorRoutes.js';
 import { attachSession, authMode } from './auth/index.js';
 import { createSpaRouter } from './middleware/spa.js';
 import { startConnectors, stopConnectors } from './connectors/runtime.js';
-import { getPollerStatus, startPoller, stopPoller } from './poller.js';
+import { pollerState, startPoller, stopPoller } from './poller.js';
 
 const app = express();
 
@@ -66,7 +66,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', tool: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
 });
 app.get('/status', (req, res) => {
-  res.json(getPollerStatus());
+  res.json(pollerState);
 });
 app.get('/ready', async (req, res) => {
   try {
@@ -161,11 +161,10 @@ const server = await new Promise((resolve) => {
         console.log('[connectors] deshabilitados (CONNECTORS_ENABLED=false)');
       }
       if (process.env.TOOL_ID) {
-        try {
-          startPoller();
-        } catch (err) {
+        startPoller(process.env.TOOL_ID).catch((err) => {
           console.error('[poller] no se pudo arrancar:', err.message);
-        }
+          pollerState.lastError = { at: new Date().toISOString(), message: err.message };
+        });
       }
       resolve(s);
     });

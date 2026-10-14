@@ -34,7 +34,7 @@ Para cada servicio federado configure también:
 
 ```text
 TOOL_ID=<id de la tool de la tabla>
-ISOTOOLS_API_URL=https://isotools-production.up.railway.app/api/v1
+ISOTOOLS_API_URL=https://api-events.orcalabs.mx/api/v1
 ISOTOOLS_API_KEY=<key registrada en el core con events:read,events:write>
 ```
 

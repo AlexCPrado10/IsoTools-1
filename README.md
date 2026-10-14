@@ -159,7 +159,7 @@ Ver [§ 5](#5-consumir-cómo-pedir-solo-los-datos-que-necesitas) para el detalle
 
 ### Tools analíticas incluidas en este repositorio
 
-Este paquete añade `calculate_control_charts`, `detect_business_anomalies` y `generate_kpis` como tools nativas del core, con sus Dockerfiles para empaquetarlas individualmente. En modo federado, cada servicio define `TOOL_ID`, `ISOTOOLS_API_URL=https://isotools-production.up.railway.app/api/v1` y su propia API key registrada en el core como secreto `ISOTOOLS_API_KEY`. El poller consume la suscripción de la tool, publica resultados con los IDs causales conservados y expone cursor/errores en `/status`; `/ready` comprueba acceso autenticado. No pongas credenciales en Git.
+Este paquete añade `calculate_control_charts`, `detect_business_anomalies` y `generate_kpis` como tools nativas del core, con sus Dockerfiles para empaquetarlas individualmente. En modo federado, cada servicio define `TOOL_ID`, `ISOTOOLS_API_URL=https://api-events.orcalabs.mx/api/v1` y su propia API key registrada en el core como secreto `ISOTOOLS_API_KEY`. El poller consume la suscripción de la tool, publica resultados con los IDs causales conservados y expone cursor/errores en `/status`; `/ready` comprueba acceso autenticado. No pongas credenciales en Git.
 
 | Tool | Dockerfile |
 |------|------------|

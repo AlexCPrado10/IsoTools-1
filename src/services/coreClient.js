@@ -70,6 +70,10 @@ export async function fetchToolSubscription (toolId, { sinceSeq, limit = 100 } =
   }, fetchImpl);
 }
 
+export async function consumeSubscription (toolId, sinceSeq = 0, { limit = 50, env = process.env, fetchImpl = fetch } = {}) {
+  return fetchToolSubscription(toolId, { sinceSeq, limit }, { env, fetchImpl });
+}
+
 export async function publishCoreEvent (event, { env = process.env, fetchImpl = fetch } = {}) {
   const { baseUrl, apiKey } = getCoreConfig(env);
   return requestJson(`${baseUrl}/events`, {
