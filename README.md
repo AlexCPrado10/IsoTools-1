@@ -67,6 +67,40 @@ curl http://localhost:3000/api/v1/health
 Servicios: API en `http://localhost:3000`, Postgres en `localhost:5432` (`industrial`/`industrial`).
 Sin Docker: copia `.env.example` → `.env`, ajusta `DATABASE_URL` y corre `npm run dev`.
 
+### Configuración local de las tools analíticas
+
+Copia `.env.example` a `.env`. Configura `ISOTOOLS_API_URL` con la URL base de la API central, incluido `/api/v1`, y asigna una API key distinta a cada tool. Las keys deben estar registradas en la base de datos de producción del core; una key creada contra la base local no servirá allí. No guardes keys reales en el repositorio.
+
+```bash
+docker compose --profile tools up --build -d
+```
+
+| Servicio | Puerto local | Dockerfile | Key local en `.env` |
+|----------|--------------|------------|-----------------------|
+| `calculate-control-charts` | `8101` | `tools/calculate_control_charts/Docker/Dockerfile` | `ISOTOOLS_API_KEY_CALCULATE_CONTROL_CHARTS` |
+| `detect-business-anomalies` | `8102` | `tools/detect_business_anomalies/Docker/Dockerfile` | `ISOTOOLS_API_KEY_DETECT_BUSINESS_ANOMALIES` |
+| `generate-kpis` | `8103` | `tools/generate_kpis/Docker/Dockerfile` | `ISOTOOLS_API_KEY_GENERATE_KPIS` |
+
+En Railway, configura por separado en cada servicio `ISOTOOLS_API_URL=https://tools.orcalabs.mx/api/v1` y `ISOTOOLS_API_KEY` con la key individual correspondiente. Los contenedores requieren ambas variables para arrancar. `/health` comprueba que el proceso vive; `/ready` comprueba además acceso autenticado de lectura al core y devuelve `503` si la URL, la key o la respuesta no son válidas.
+
+`src/services/coreClient.js` ofrece la comprobación de disponibilidad y la función `publishCoreEvent()` para publicar eventos con `x-api-key`. La publicación debe invocarse desde el flujo de trabajo del consumidor; el helper no inicia un polling por sí mismo. La API de este repositorio consulta eventos con `start`/`end`, no con `since_seq`; acuerda con el administrador el cursor, persistencia y deduplicación antes de activar un consumidor externo.
+
+Pruebas del cliente, sin usar credenciales reales:
+
+```bash
+npm run test:core-client
+```
+
+El administrador debe crear las tres keys conectado a la base de producción, una por servicio, y compartir cada valor por un canal seguro:
+
+```powershell
+npm.cmd run apikey:create -- calculate_control_charts --scopes=events:read,events:write
+npm.cmd run apikey:create -- detect_business_anomalies --scopes=events:read,events:write
+npm.cmd run apikey:create -- generate_kpis --scopes=events:read,events:write
+```
+
+Cada comando muestra el valor secreto una sola vez. No se pueden generar aquí keys válidas para producción sin conexión autorizada a la base de datos compartida.
+
 ### Endpoints (autenticados por API key)
 
 | Método | Ruta | Qué hace |

@@ -13,6 +13,7 @@
     "seed:stream": "node scripts/simulateStream.js",
     "sim:iso": "node scripts/test_package_iso.js",
     "test:validate": "node scripts/validate_tool_outputs.js",
+    "test:core-client": "node --test scripts/coreClient.test.js",
     "apikey:create": "node scripts/createApiKey.js",
     "cerebro:generar": "node scripts/generar-cerebro.js",
     "rama:comm": "node scripts/crear-rama-comunicacion.js"

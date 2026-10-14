@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ensureSchema } from './db/migrate.js';
 import eventsRouter from './routes/eventsRoutes.js';
+import { checkCoreConnection, getCoreConfig } from './services/coreClient.js';
 
 const app = express();
 
@@ -37,6 +38,18 @@ app.get('/health', (req, res) => {
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', time: new Date().toISOString() });
 });
+app.get('/ready', async (req, res) => {
+  try {
+    await checkCoreConnection();
+    return res.json({ status: 'ready', service: process.env.TOOL_ID || 'isotools' });
+  } catch (error) {
+    return res.status(503).json({
+      status: 'not_ready',
+      service: process.env.TOOL_ID || 'isotools',
+      error: error.message
+    });
+  }
+});
 
 if (UI_DIST_DIR && fs.existsSync(UI_DIST_DIR)) {
   app.use(express.static(UI_DIST_DIR));
@@ -55,6 +68,10 @@ app.use((err, req, res, next) => {
     error: err.message || 'Internal Server Error'
   });
 });
+
+// Los servicios publicados como tools requieren configuración del core antes
+// de arrancar; el servidor central local no la necesita.
+if (process.env.REQUIRE_CORE_CONNECTION === 'true') getCoreConfig();
 
 // Verifica el esquema (columnas de cadena causal) y arranca. La migración es
 // no fatal: si falla, la API arranca igual para no tumbar el servicio.
