@@ -100,10 +100,11 @@
     {
       "toolId": "collect_quality_measurements",
       "kind": "federated",
-      "status": "pending",
+      "status": "live",
+      "subdomain": "cqm",
       "owner": "pendiente de asignar",
       "isoClause": "8.5.1",
-      "note": "Federada por contrato: su equipo sera dueno del servicio. Todavia no declara `subdomain`, asi que la URL no se resuelve y el bus cae de vuelta al handler de src/tools/ (el fallback documentado en CLAUDE.md): la cadena ISO sigue viva sin desplegar nada. Ese handler queda como REFERENCIA del contrato para quien implemente el servicio. En cuanto el equipo declare aqui su `subdomain`, el router delega en el y deja de ejecutarlo."
+      "note": "Servicio en Railway (Online en el panel), pero GET https://cqm.orcalabs.mx/health -> 404 `Application not found` con `x-railway-fallback: true`: el borde de Railway no asocia el dominio a ningun servicio (Custom Domain sin agregar o CNAME mal apuntado), asi que el dashboard lo pinta en rojo. El router ya DELEGA por URL resoluble; el poll del servicio es saliente y no depende de su dominio."
     },
     {
       "toolId": "calculate_control_charts",
@@ -127,18 +128,20 @@
     {
       "toolId": "generate_8d_report",
       "kind": "federated",
-      "status": "pending",
+      "status": "live",
+      "subdomain": "g8r",
       "owner": "pendiente de asignar",
       "isoClause": "10.2",
-      "note": "Federada por contrato: su equipo sera dueno del servicio. Todavia no declara `subdomain`, asi que la URL no se resuelve y el bus cae de vuelta al handler de src/tools/ (el fallback documentado en CLAUDE.md): la cadena ISO sigue viva sin desplegar nada. Ese handler queda como REFERENCIA del contrato para quien implemente el servicio. En cuanto el equipo declare aqui su `subdomain`, el router delega en el y deja de ejecutarlo."
+      "note": "Servicio en Railway (Online en el panel), pero GET https://g8r.orcalabs.mx/health -> 404 `Application not found` con `x-railway-fallback: true`: el borde de Railway no asocia el dominio a ningun servicio (Custom Domain sin agregar o CNAME mal apuntado), asi que el dashboard lo pinta en rojo. El router ya DELEGA por URL resoluble; el poll del servicio es saliente y no depende de su dominio."
     },
     {
       "toolId": "analyze_failure_modes",
       "kind": "federated",
-      "status": "pending",
+      "status": "live",
+      "subdomain": "rap",
       "owner": "pendiente de asignar",
       "isoClause": "6.1",
-      "note": "Federada por contrato: su equipo sera dueno del servicio. Todavia no declara `subdomain`, asi que la URL no se resuelve y el bus cae de vuelta al handler de src/tools/ (el fallback documentado en CLAUDE.md): la cadena ISO sigue viva sin desplegar nada. Ese handler queda como REFERENCIA del contrato para quien implemente el servicio. En cuanto el equipo declare aqui su `subdomain`, el router delega en el y deja de ejecutarlo."
+      "note": "Servicio `rumbar-analyze` en Railway, verificado con GET https://rap.orcalabs.mx/health -> 200 {\"tool\":\"analyze_failure_modes\"}. El router DELEGA y ya no ejecuta su handler de src/tools/, que queda como referencia del contrato."
     },
     {
       "toolId": "calculate_cpk_ppk",
@@ -186,10 +189,11 @@
     {
       "toolId": "track_project_progress",
       "kind": "federated",
-      "status": "pending",
+      "status": "live",
+      "subdomain": "tpp",
       "owner": "pendiente de asignar",
       "isoClause": "6.2",
-      "note": "Federada por contrato: su equipo sera dueno del servicio. Todavia no declara `subdomain`, asi que la URL no se resuelve y el bus cae de vuelta al handler de src/tools/ (el fallback documentado en CLAUDE.md): la cadena ISO sigue viva sin desplegar nada. Ese handler queda como REFERENCIA del contrato para quien implemente el servicio. En cuanto el equipo declare aqui su `subdomain`, el router delega en el y deja de ejecutarlo."
+      "note": "Servicio en Railway, verificado con GET https://tpp.orcalabs.mx/health -> 200. El router DELEGA y ya no ejecuta su handler de src/tools/, que queda como referencia del contrato."
     },
     {
       "toolId": "automate_followups",
