@@ -11,10 +11,14 @@
 // El `meta.id` debe coincidir con el `targetToolId`/`sourceToolId` de las reglas,
 // y `meta.produces`/`meta.consumes` con los `event` de esas reglas.
 // ─────────────────────────────────────────────────────────────────────────────
-import * as inspectProductQuality from './inspect_product_quality.js';
+// inspect_product_quality: retirado del bus nativo — ahora lo implementa un
+// servicio EXTERNO que publica DEFECT_FOUND por la API. Se quitó para no
+// inspeccionar el mismo frame dos veces (placeholder nativo + runner externo).
 import * as collectQualityMeasurements from './collect_quality_measurements.js';
 import * as calculateControlCharts from './calculate_control_charts.js';
-import * as detectOutOfControlSignals from './detect_out_of_control_signals.js';
+// detect_out_of_control_signals: retirado del bus nativo — ahora lo implementa
+// un servicio EXTERNO que publica OUT_OF_CONTROL_DETECTED por la API. Se quitó
+// para no duplicar la deteccion (y las NCs) con el runner externo.
 import * as manageNonconformances from './manage_nonconformances.js';
 import * as generate8dReport from './generate_8d_report.js';
 import * as analyzeFailureModes from './analyze_failure_modes.js';
@@ -26,13 +30,13 @@ import * as detectBusinessAnomalies from './detect_business_anomalies.js';
 import * as comparePlannedVsActual from './compare_planned_vs_actual.js';
 import * as generateKpis from './generate_kpis.js';
 import * as trackProjectProgress from './track_project_progress.js';
-import * as automateFollowups from './automate_followups.js';
+// automate_followups: retirado del bus nativo — ahora lo implementa un servicio
+// EXTERNO que publica FOLLOWUP_SCHEDULED por la API. Se quitó para no agendar
+// el mismo seguimiento dos veces (placeholder nativo + runner externo).
 
 const TOOLS = [
-  inspectProductQuality,
   collectQualityMeasurements,
   calculateControlCharts,
-  detectOutOfControlSignals,
   manageNonconformances,
   generate8dReport,
   analyzeFailureModes,
@@ -43,8 +47,7 @@ const TOOLS = [
   detectBusinessAnomalies,
   comparePlannedVsActual,
   generateKpis,
-  trackProjectProgress,
-  automateFollowups
+  trackProjectProgress
 ];
 
 const REGISTRY = new Map();
