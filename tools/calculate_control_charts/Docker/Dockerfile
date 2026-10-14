@@ -16,9 +16,10 @@ COPY tools/calculate_control_charts/frontend ./tools/calculate_control_charts/fr
 ENV PORT=8101
 ENV TOOL_ID=calculate_control_charts
 ENV UI_DIST_DIR=/app/tools/calculate_control_charts/frontend
+ENV REQUIRE_CORE_CONNECTION=true
 EXPOSE 8101
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8101)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8101)+'/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "src/server.js"]

@@ -41,6 +41,7 @@ import connectorsRouter from './routes/connectorRoutes.js';
 import { attachSession, authMode } from './auth/index.js';
 import { createSpaRouter } from './middleware/spa.js';
 import { startConnectors, stopConnectors } from './connectors/runtime.js';
+import { checkCoreConnection, getCoreConfig } from './services/coreClient.js';
 
 const app = express();
 const UI_DIST_DIR = process.env.UI_DIST_DIR;
@@ -75,7 +76,11 @@ app.get('/api/v1/ready', async (req, res) => {
 });
 app.get('/ready', async (req, res) => {
   try {
-    await pingDb();
+    if (process.env.REQUIRE_CORE_CONNECTION === 'true' || process.env.TOOL_ID) {
+      await checkCoreConnection();
+    } else {
+      await pingDb();
+    }
     return res.json({ status: 'ready', service: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
   } catch (error) {
     return res.status(503).json({ status: 'not_ready', service: process.env.TOOL_ID || 'isotools', error: error.message });
@@ -126,6 +131,8 @@ app.use((err, req, res, next) => {
 
 // Verifica el esquema (columnas de cadena causal + cursor seq + idempotencia) y
 // arranca. La migracion es NO fatal: si falla, la API arranca igual.
+if (process.env.REQUIRE_CORE_CONNECTION === 'true') getCoreConfig();
+
 const server = await new Promise((resolve) => {
   ensureSchema()
     .then(() => bootstrapApiKey())
