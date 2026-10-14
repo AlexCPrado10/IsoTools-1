@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkCoreConnection, getCoreConfig, publishCoreEvent } from '../src/services/coreClient.js';
+import { checkCoreConnection, fetchToolSubscription, getCoreConfig, publishCoreEvent } from '../src/services/coreClient.js';
 
 const env = {
-  ISOTOOLS_API_URL: 'https://tools.orcalabs.mx/api/v1/',
+  ISOTOOLS_API_URL: 'https://isotools-production.up.railway.app/api/v1/',
   ISOTOOLS_API_KEY: 'test-api-key'
 };
 
 test('requires the shared API URL to include /api/v1 and a key', () => {
   assert.deepEqual(getCoreConfig(env), {
-    baseUrl: 'https://tools.orcalabs.mx/api/v1',
+    baseUrl: 'https://isotools-production.up.railway.app/api/v1',
     apiKey: 'test-api-key'
   });
   assert.throws(() => getCoreConfig({ ...env, ISOTOOLS_API_URL: 'https://tools.orcalabs.mx' }), /end in \/api\/v1/);
@@ -46,9 +46,28 @@ test('publishes events using the registered API key', async () => {
   const event = { event_id: 'test-1', event: { type: 'TEST_EVENT' }, data: {} };
 
   assert.deepEqual(await publishCoreEvent(event, { env, fetchImpl }), { status: 'accepted' });
-  assert.equal(request.url, 'https://tools.orcalabs.mx/api/v1/events');
+  assert.equal(request.url, 'https://isotools-production.up.railway.app/api/v1/events');
   assert.equal(request.options.headers['x-api-key'], env.ISOTOOLS_API_KEY);
   assert.deepEqual(JSON.parse(request.options.body), event);
+});
+
+test('reads a tool subscription with its cursor and read key', async () => {
+  let request;
+  const fetchImpl = async (url, options) => {
+    request = { url, options };
+    return new Response(JSON.stringify({ events: [], next_seq: 12 }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    });
+  };
+
+  assert.deepEqual(await fetchToolSubscription(
+    'calculate_control_charts',
+    { sinceSeq: 12, limit: 25 },
+    { env, fetchImpl }
+  ), { events: [], next_seq: 12 });
+  assert.equal(request.url, 'https://isotools-production.up.railway.app/api/v1/events/subscriptions/calculate_control_charts?limit=25&since_seq=12');
+  assert.equal(request.options.headers['x-api-key'], env.ISOTOOLS_API_KEY);
 });
 
 test('fails readiness instead of accepting HTML dashboard responses', async () => {

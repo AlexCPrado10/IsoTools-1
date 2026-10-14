@@ -9,10 +9,14 @@ export const meta = {
   produces: ['KPI_REPORT_GENERATED']
 };
 
+function normalizePeriod (period) {
+  return ['daily', 'weekly', 'monthly'].includes(period) ? period : 'monthly';
+}
+
 export function handler (event) {
   const input = event.data || {};
-  const plantId = input.plantId || input.asset?.plantId || 'plant_01';
-  const period = input.period || new Date().toISOString().slice(0,7);
+  const plantId = input.plantId || event.asset?.plantId || event.asset?.plant_id || 'plant_01';
+  const period = normalizePeriod(input.period);
 
   // baseline KPIs
   let oee = 0.85;

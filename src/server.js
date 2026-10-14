@@ -42,6 +42,7 @@ import connectorsRouter from './routes/connectorRoutes.js';
 import { attachSession, authMode } from './auth/index.js';
 import { createSpaRouter } from './middleware/spa.js';
 import { startConnectors, stopConnectors } from './connectors/runtime.js';
+import { getPollerStatus, startPoller, stopPoller } from './poller.js';
 
 const app = express();
 
@@ -64,9 +65,12 @@ app.get('/api/v1/health', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', tool: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
 });
+app.get('/status', (req, res) => {
+  res.json(getPollerStatus());
+});
 app.get('/ready', async (req, res) => {
   try {
-    if (process.env.REQUIRE_CORE_CONNECTION === 'true') {
+    if (process.env.REQUIRE_CORE_CONNECTION === 'true' || process.env.TOOL_ID) {
       await checkCoreConnection();
     } else {
       await pingDb();
@@ -156,6 +160,13 @@ const server = await new Promise((resolve) => {
       } else {
         console.log('[connectors] deshabilitados (CONNECTORS_ENABLED=false)');
       }
+      if (process.env.TOOL_ID) {
+        try {
+          startPoller();
+        } catch (err) {
+          console.error('[poller] no se pudo arrancar:', err.message);
+        }
+      }
       resolve(s);
     });
   });
@@ -170,6 +181,7 @@ async function shutdown (signal) {
   shuttingDown = true;
   console.log(`[shutdown] ${signal} recibido; drenando...`);
   stopConnectors(); // deja de sondear el ERP antes de cerrar el pool
+  stopPoller();
   const forced = setTimeout(() => {
     console.error('[shutdown] tiempo agotado; salida forzada');
     process.exit(1);
