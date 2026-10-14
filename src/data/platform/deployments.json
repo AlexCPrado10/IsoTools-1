@@ -19,54 +19,25 @@
       "quality.technical-authority",
       "quality.director"
     ],
-    "maintenance": [
-      "maintenance.technician",
-      "maintenance.manager"
-    ],
-    "production": [
-      "operator",
-      "operations.manager"
-    ],
-    "erp": [
-      "operations.manager"
-    ],
-    "supply-chain": [
-      "operations.manager"
-    ],
-    "energy": [
-      "operations.manager"
-    ],
-    "safety": [
-      "operator",
-      "operations.manager"
-    ],
-    "control": [
-      "operator",
-      "operations.manager"
-    ],
-    "vision": [
-      "quality.engineer",
-      "operations.manager"
-    ],
-    "ai-ml": [
-      "operations.manager"
-    ],
-    "digital-twin": [
-      "operations.manager"
-    ],
-    "infrastructure": [
-      "platform.admin"
-    ],
-    "cybersecurity": [
-      "platform.admin"
-    ]
+    "maintenance": ["maintenance.technician", "maintenance.manager"],
+    "production": ["operator", "operations.manager"],
+    "erp": ["operations.manager"],
+    "supply-chain": ["operations.manager"],
+    "energy": ["operations.manager"],
+    "safety": ["operator", "operations.manager"],
+    "control": ["operator", "operations.manager"],
+    "vision": ["quality.engineer", "operations.manager"],
+    "ai-ml": ["operations.manager"],
+    "digital-twin": ["operations.manager"],
+    "infrastructure": ["platform.admin"],
+    "cybersecurity": ["platform.admin"]
   },
   "tools": [
     {
       "toolId": "manage_product_specs",
       "kind": "federated",
       "status": "live",
-      "subdomain": "specs",
+      "subdomain": "mps",
       "localPort": 8101,
       "owner": "Calidad (ai-iso)",
       "repo": "ai-iso",
@@ -83,7 +54,7 @@
       "toolId": "manage_device_registry",
       "kind": "federated",
       "status": "live",
-      "subdomain": "devices",
+      "subdomain": "mdr",
       "localPort": 8102,
       "owner": "Calidad (ai-iso)",
       "repo": "ai-iso",
@@ -101,7 +72,7 @@
       "toolId": "manage_nonconformances",
       "kind": "federated",
       "status": "live",
-      "subdomain": "nc",
+      "subdomain": "mnc",
       "localPort": 8103,
       "owner": "Calidad (ai-iso)",
       "repo": "ai-iso",
