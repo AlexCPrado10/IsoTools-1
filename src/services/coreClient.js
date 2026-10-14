@@ -60,6 +60,16 @@ export async function checkCoreConnection ({ env = process.env, fetchImpl = fetc
   return { status: 'ready' };
 }
 
+export async function fetchToolSubscription (toolId, { sinceSeq, limit = 100 } = {}, { env = process.env, fetchImpl = fetch } = {}) {
+  const { baseUrl, apiKey } = getCoreConfig(env);
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (sinceSeq != null) query.set('since_seq', String(sinceSeq));
+  const url = `${baseUrl}/events/subscriptions/${encodeURIComponent(toolId)}?${query}`;
+  return requestJson(url, {
+    headers: { [API_KEY_HEADER]: apiKey }
+  }, fetchImpl);
+}
+
 export async function publishCoreEvent (event, { env = process.env, fetchImpl = fetch } = {}) {
   const { baseUrl, apiKey } = getCoreConfig(env);
   return requestJson(`${baseUrl}/events`, {

@@ -42,6 +42,7 @@ import { attachSession, authMode } from './auth/index.js';
 import { createSpaRouter } from './middleware/spa.js';
 import { startConnectors, stopConnectors } from './connectors/runtime.js';
 import { checkCoreConnection, getCoreConfig } from './services/coreClient.js';
+import { getPollerStatus, startPoller, stopPoller } from './poller.js';
 
 const app = express();
 const UI_DIST_DIR = process.env.UI_DIST_DIR;
@@ -65,14 +66,8 @@ app.get('/api/v1/health', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'isotools', tool: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
 });
-
-app.get('/api/v1/ready', async (req, res) => {
-  try {
-    await pingDb();
-    res.json({ status: 'ready', service: 'isotools', time: new Date().toISOString() });
-  } catch (err) {
-    res.status(503).json({ status: 'not_ready', error: err.message });
-  }
+app.get('/status', (req, res) => {
+  res.json(getPollerStatus());
 });
 app.get('/ready', async (req, res) => {
   try {
@@ -83,7 +78,20 @@ app.get('/ready', async (req, res) => {
     }
     return res.json({ status: 'ready', service: process.env.TOOL_ID || 'isotools', time: new Date().toISOString() });
   } catch (error) {
-    return res.status(503).json({ status: 'not_ready', service: process.env.TOOL_ID || 'isotools', error: error.message });
+    return res.status(503).json({
+      status: 'not_ready',
+      service: process.env.TOOL_ID || 'isotools',
+      error: error.message
+    });
+  }
+});
+
+app.get('/api/v1/ready', async (req, res) => {
+  try {
+    await pingDb();
+    res.json({ status: 'ready', service: 'isotools', time: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ status: 'not_ready', error: err.message });
   }
 });
 
@@ -151,6 +159,13 @@ const server = await new Promise((resolve) => {
       } else {
         console.log('[connectors] deshabilitados (CONNECTORS_ENABLED=false)');
       }
+      if (process.env.TOOL_ID) {
+        try {
+          startPoller();
+        } catch (err) {
+          console.error('[poller] no se pudo arrancar:', err.message);
+        }
+      }
       resolve(s);
     });
   });
@@ -165,6 +180,7 @@ async function shutdown (signal) {
   shuttingDown = true;
   console.log(`[shutdown] ${signal} recibido; drenando...`);
   stopConnectors(); // deja de sondear el ERP antes de cerrar el pool
+  stopPoller();
   const forced = setTimeout(() => {
     console.error('[shutdown] tiempo agotado; salida forzada');
     process.exit(1);

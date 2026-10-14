@@ -12,7 +12,7 @@ export const meta = {
 export function handler (event) {
   const input = event.data || {};
   const characteristicId = input.characteristicId || 'XBAR-01';
-  const chartType = (input.chartType || 'xbar-r').toLowerCase();
+  const chartType = (input.chartType || 'xbar_r').toLowerCase().replaceAll('_', '-');
   const measurements = Array.isArray(input.measurements) ? input.measurements.map(Number).filter(n => Number.isFinite(n)) : [];
   let subgroupSize = Number.isInteger(input.subgroupSize) ? input.subgroupSize : 5;
   // helpers
@@ -30,6 +30,7 @@ export function handler (event) {
   const D3 = {2:0,3:0,4:0,5:0,6:0.076,7:0.136,8:0.184,9:0.223,10:0.256};
   const D4 = {2:3.267,3:2.574,4:2.282,5:2.114,6:2.004,7:1.924,8:1.864,9:1.816,10:1.777};
   const d2 = {2:1.128,3:1.693,4:2.059,5:2.326,6:2.534,7:2.704,8:2.847,9:2.970,10:3.078};
+  const c4 = {2:0.7979,3:0.8862,4:0.9213,5:0.9400,6:0.9515,7:0.9594,8:0.9650,9:0.9693,10:0.9727};
 
   // adjust subgroup size if insufficient measurements
   if (measurements.length < subgroupSize) subgroupSize = Math.max(2, Math.min(10, measurements.length));
@@ -50,8 +51,7 @@ export function handler (event) {
       ucl = centerLine + a2 * Rbar;
       lcl = centerLine - a2 * Rbar;
     } else {
-      const a3 = (d2[n] ? (3 / d2[n]) : (3 / d2[5]));
-      const c4 = d2[n] ? (d2[n] / Math.sqrt(2/(n-1))) : 0.99; // approximate if needed
+      const a3 = 3 / ((c4[n] || c4[5]) * Math.sqrt(n));
       ucl = centerLine + a3 * sbar;
       lcl = centerLine - a3 * sbar;
     }
