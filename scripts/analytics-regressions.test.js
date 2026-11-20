@@ -21,6 +21,42 @@ test('calculate_control_charts accepts catalog xbar_r and xbar_s values', () => 
   assert.notEqual(xbarR.data.ucl, xbarS.data.ucl);
 });
 
+test('Xbar charts plot subgroup means and index out-of-control subgroups consistently', () => {
+  const output = calculateControlCharts({
+    event: { type: 'MEASUREMENTS_CAPTURED' },
+    data: {
+      chartType: 'xbar-r',
+      subgroupSize: 5,
+      measurements: [10.1, 9.9, 10.1, 9.9, 10.1, 20.1, 19.9, 20.1, 19.9, 20.1]
+    }
+  });
+
+  assert.deepEqual(output.data.plotPoints, [10.02, 20.02]);
+  assert.deepEqual(output.data.outOfControlPoints, [0, 1]);
+});
+
+test('np charts use defect counts and count-based control limits', () => {
+  const output = calculateControlCharts({
+    event: { type: 'MEASUREMENTS_CAPTURED' },
+    data: { chartType: 'np', subgroupSize: 10, measurements: [0, 1, 1, 2] }
+  });
+
+  assert.deepEqual(output.data.plotPoints, [0, 1, 1, 2]);
+  assert.equal(output.data.centerLine, 1);
+  assert.ok(output.data.ucl > output.data.centerLine);
+  assert.equal(output.data.lcl, 0);
+});
+
+test('MSA validation is consumed without emitting an empty control chart', () => {
+  const output = calculateControlCharts({
+    event: { type: 'MSA_VALIDATED' },
+    asset: { asset_id: 'ENS-CAL-101' },
+    data: { gaugeId: 'ENS-CAL-101', verdict: 'acceptable' }
+  });
+
+  assert.equal(output, null);
+});
+
 test('detect_business_anomalies accepts metric-name arrays and unknown metric names', () => {
   const output = detectBusinessAnomalies({
     event: { type: 'FORECAST_READY' },

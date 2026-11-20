@@ -85,3 +85,10 @@ export async function publishCoreEvent (event, { env = process.env, fetchImpl = 
     body: JSON.stringify(event)
   }, fetchImpl);
 }
+
+export async function fetchCoreEventChain (correlationId, { env = process.env, fetchImpl = fetch } = {}) {
+  const { baseUrl, apiKey } = getCoreConfig(env);
+  return requestJson(`${baseUrl}/events/chain/${encodeURIComponent(correlationId)}`, {
+    headers: { [API_KEY_HEADER]: apiKey }
+  }, fetchImpl);
+}

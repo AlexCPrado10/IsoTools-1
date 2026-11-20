@@ -43,6 +43,7 @@ import { createSpaRouter } from './middleware/spa.js';
 import { startConnectors, stopConnectors } from './connectors/runtime.js';
 import { checkCoreConnection, getCoreConfig } from './services/coreClient.js';
 import { pollerState, startPoller, stopPoller } from './poller.js';
+import toolRunnerRouter from './routes/toolRunnerRoutes.js';
 
 const app = express();
 const UI_DIST_DIR = process.env.UI_DIST_DIR;
@@ -107,6 +108,7 @@ app.use('/api/v1/console', consoleRouter);
 // Plano de conectores: ERP/PLC -> conector -> Industrial Events -> router -> tools.
 // Las tools no se conectan al ERP; esto es solo el control de esa ingesta.
 app.use('/api/v1/connectors', connectorsRouter);
+if (process.env.TOOL_ID) app.use('/api/tool', toolRunnerRouter);
 
 // Cualquier cosa bajo /api que no exista es un 404 JSON. Va antes del SPA para que
 // un endpoint mal escrito no reciba el HTML del shell con un 200.

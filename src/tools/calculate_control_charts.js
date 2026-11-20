@@ -10,6 +10,9 @@ export const meta = {
 };
 
 export function handler (event) {
+  // An MSA result establishes instrument suitability; it is not measurement data.
+  if (event.event?.type === 'MSA_VALIDATED') return null;
+
   const input = event.data || {};
   const characteristicId = input.characteristicId || 'XBAR-01';
   const chartType = (input.chartType || 'xbar_r').toLowerCase().replaceAll('_', '-');
@@ -42,6 +45,7 @@ export function handler (event) {
     const groups = chunk(measurements, subgroupSize).filter(g => g.length>=2);
     const subgroupMeans = groups.map(g=>mean(g));
     const subgroupRanges = groups.map(g=>Math.max(...g)-Math.min(...g));
+    plotPoints = subgroupMeans;
     centerLine = subgroupMeans.length ? mean(subgroupMeans) : mean(measurements);
     const Rbar = subgroupRanges.length ? mean(subgroupRanges) : 0;
     const sbar = groups.length ? mean(groups.map(g=>std(g))) : std(measurements);
@@ -60,8 +64,7 @@ export function handler (event) {
     for (let i=0;i<subgroupMeans.length;i++) {
       const m = subgroupMeans[i];
       if (m > ucl || m < lcl) {
-        // map to index of first point of subgroup
-        outOfControlPoints.push(i*subgroupSize);
+        outOfControlPoints.push(i);
       }
     }
     inControl = outOfControlPoints.length === 0;
@@ -84,11 +87,20 @@ export function handler (event) {
       const totalDefects = defectCounts.reduce((a,b)=>a+(Number.isFinite(b)?b:0),0);
       const totalUnits = subgroupCounts.reduce((a,b)=>a+(Number.isFinite(b)?b:0),0) || (defectCounts.length * n);
       const pbar = totalUnits ? totalDefects/totalUnits : 0;
-      const se = Math.sqrt((pbar*(1-pbar))/n);
-      ucl = pbar + 3*se; lcl = Math.max(0,pbar - 3*se);
-      centerLine = pbar;
-      plotPoints = defectCounts.map((d,i)=> (totalUnits ? (d / (subgroupCounts[i]||n)) : (d/n)));
-      outOfControlPoints = plotPoints.map((v,i)=> (v>ucl||v<lcl) ? i : -1).filter(i=>i>=0);
+      if (chartType === 'np') {
+        centerLine = pbar * n;
+        const se = Math.sqrt(n * pbar * (1 - pbar));
+        ucl = centerLine + 3 * se;
+        lcl = Math.max(0, centerLine - 3 * se);
+        plotPoints = defectCounts;
+      } else {
+        const se = Math.sqrt((pbar * (1 - pbar)) / n);
+        ucl = pbar + 3 * se;
+        lcl = Math.max(0, pbar - 3 * se);
+        centerLine = pbar;
+        plotPoints = defectCounts.map((d, i) => (totalUnits ? (d / (subgroupCounts[i] || n)) : (d / n)));
+      }
+      outOfControlPoints = plotPoints.map((v, i) => (v > ucl || v < lcl) ? i : -1).filter(i => i >= 0);
       inControl = outOfControlPoints.length===0;
     } else { // c or u
       const lambda = defectCounts.length ? mean(defectCounts) : 0;

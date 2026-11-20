@@ -44,6 +44,37 @@ El cursor es local a la instancia y se reinicia saltando el backlog; para no
 perder eventos durante reinicios, el cursor debe persistirse en almacenamiento
 durable antes de usarlo en producción crítica.
 
+## Uso desde el navegador
+
+Cada subdominio sirve el panel operativo de su tool. Después de iniciar sesión
+por OIDC, captura los parámetros y envía la ejecución desde la página. El
+backend publica el evento con su API key privada; la clave nunca se envía al
+navegador. La pantalla consulta la cadena por `correlation_id` y muestra los
+resultados que la tool guardó en Industrial Events.
+
+Las ejecuciones manuales se identifican con el módulo `isotools_manual_test`,
+un activo `ENS-*` y metadatos `syntheticTest: true`. Son eventos nuevos y
+visibles en el registro central; no son datos ERP ni deben etiquetarse como
+producción real. Para publicarlos se requiere sesión OIDC, rol `operator`,
+confirmación explícita en el formulario y mismo origen. El evento registra el
+subject OIDC del operador y su rol de autorización; el endpoint de consulta
+requiere sesión, pero no permiso para escribir:
+
+| Tool | Página | Parámetros principales | Salida mostrada |
+| --- | --- | --- | --- |
+| `calculate_control_charts` | `/` en `ccc.orcalabs.mx` | Planta, característica, tipo de carta, subgrupo y mediciones | Límites, puntos, estado y gráfica SPC |
+| `detect_business_anomalies` | `/` en `dba.orcalabs.mx` | Planta, métrica, desviación, sensibilidad y periodo | Anomalías, valores esperados/observados y Z-score |
+| `generate_kpis` | `/` en `gk.orcalabs.mx` | Planta, periodo y variación sintética | Tarjetas OEE, scrap rate, entrega a tiempo y costo unitario |
+
+La UI usa `POST /api/tool/runs` para iniciar una prueba y
+`GET /api/tool/runs/:correlationId` para consultar la cadena. El servicio debe
+tener `TOOL_ID`, la URL del Core y una `ISOTOOLS_API_KEY` con scopes
+`events:read,events:write`. Si la UI responde “authentication required”, inicia
+sesión en el dominio de esa tool; cada subdominio es un relying party OIDC
+independiente. Para cambiar cálculos, campos o comportamiento de la interfaz,
+modifica el código fuente y vuelve a desplegar; el panel solo cambia parámetros
+de ejecución, no edita el código desplegado.
+
 Los contenedores federados no necesitan PostgreSQL: el esquema/migrador local
 del servidor es no fatal cuando no hay base configurada; lectura y publicación
 se realizan contra el Core API. La API key se registra en el Core (el admin
@@ -57,8 +88,8 @@ los servicios consumidores.
 2. Añadir `RAILWAY_TOKEN` en GitHub → Settings → Secrets and variables → Actions.
 3. Configurar `RAILWAY_DOCKERFILE_PATH` en cada Service con la ruta de la tabla.
 4. Configurar `TOOL_ID`, `ISOTOOLS_API_URL` y la API key del servicio en Railway.
-5. Hacer push a `main` o ejecutar el workflow manualmente con `deploy_all`.
-6. Revisar GitHub Actions y comprobar `GET /health`, `GET /ready` y `/status` en cada dominio.
+5. Desplegar cada servicio en Railway desde el commit aprobado, comprobando que cada servicio use el Dockerfile de su fila. El workflow `.github/workflows/deploy-railway.yml` despliega solo el core/dashboard y no actualiza estos tres servicios.
+6. Comprobar `GET /health`, `GET /ready` y `/status` en cada dominio; una respuesta 200 no demuestra que la cadena funcional haya procesado un evento.
 
 No modificar Secrets, Services ni configuración de Railway cuando falle un
 deployment; conservar los logs del workflow y escalar el fallo al administrador.

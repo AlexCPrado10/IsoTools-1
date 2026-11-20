@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkCoreConnection, fetchToolSubscription, getCoreConfig, publishCoreEvent } from '../src/services/coreClient.js';
+import { checkCoreConnection, fetchCoreEventChain, fetchToolSubscription, getCoreConfig, publishCoreEvent } from '../src/services/coreClient.js';
 
 const env = {
   ISOTOOLS_API_URL: 'https://api-events.orcalabs.mx/api/v1/',
@@ -67,6 +67,24 @@ test('reads a tool subscription with its cursor and read key', async () => {
     { env, fetchImpl }
   ), { events: [], next_seq: 12 });
   assert.equal(request.url, 'https://api-events.orcalabs.mx/api/v1/events/subscriptions/calculate_control_charts?limit=25&since_seq=12');
+  assert.equal(request.options.headers['x-api-key'], env.ISOTOOLS_API_KEY);
+});
+
+test('reads an event chain with the registered API key', async () => {
+  let request;
+  const fetchImpl = async (url, options) => {
+    request = { url, options };
+    return new Response(JSON.stringify({ correlation_id: 'test-correlation', events: [] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    });
+  };
+
+  assert.deepEqual(await fetchCoreEventChain('test-correlation', { env, fetchImpl }), {
+    correlation_id: 'test-correlation',
+    events: []
+  });
+  assert.equal(request.url, 'https://api-events.orcalabs.mx/api/v1/events/chain/test-correlation');
   assert.equal(request.options.headers['x-api-key'], env.ISOTOOLS_API_KEY);
 });
 
