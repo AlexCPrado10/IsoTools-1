@@ -17,9 +17,10 @@ de eventos y artefactos siguen protegidas por `x-api-key`.
 ## GitHub Actions
 
 El workflow `.github/workflows/deploy-railway.yml` usa un único secreto de
-repositorio llamado `RAILWAY_TOKEN`. No se escribe el token en el código.
-El servicio de Railway debe existir previamente y el responsable de plataforma
-debe asociar cada nombre de servicio al proyecto correspondiente.
+repositorio llamado `RAILWAY_TOKEN` para desplegar el core/dashboard. No
+despliega estas tres tools; para ellas no hace falta configurar ese secreto en
+este workflow. El responsable de plataforma debe crear los servicios de tools y
+asociar cada nombre con su proyecto Railway.
 
 En Railway, configure por servicio:
 
@@ -84,12 +85,12 @@ los servicios consumidores.
 
 ## Primer despliegue
 
-1. El administrador crea los tres Services en Railway y entrega el token del equipo.
-2. Añadir `RAILWAY_TOKEN` en GitHub → Settings → Secrets and variables → Actions.
-3. Configurar `RAILWAY_DOCKERFILE_PATH` en cada Service con la ruta de la tabla.
-4. Configurar `TOOL_ID`, `ISOTOOLS_API_URL` y la API key del servicio en Railway.
-5. Desplegar cada servicio en Railway desde el commit aprobado, comprobando que cada servicio use el Dockerfile de su fila. El workflow `.github/workflows/deploy-railway.yml` despliega solo el core/dashboard y no actualiza estos tres servicios.
-6. Comprobar `GET /health`, `GET /ready` y `/status` en cada dominio; una respuesta 200 no demuestra que la cadena funcional haya procesado un evento.
+1. El administrador crea los tres servicios Railway y configura el contexto de build en la raíz del repositorio.
+2. En cada servicio, configura `RAILWAY_DOCKERFILE_PATH` con la ruta de su fila y sus variables `TOOL_ID`, `ISOTOOLS_API_URL` y `ISOTOOLS_API_KEY`.
+3. Configura el relying party OIDC de cada subdominio para emitir el rol `operator` a quienes pueden ejecutar pruebas.
+4. Después de aprobar e integrar el commit, el responsable despliega manualmente cada servicio de tool desde Railway. El workflow de este repo despliega solo el core/dashboard.
+5. Comprueba `GET /health`, `GET /ready` y `/status` en cada dominio; una respuesta 200 no demuestra que la cadena funcional haya procesado un evento.
+6. Con una sesión del rol `operator`, ejecuta una prueba sintética marcada y verifica su cadena en Core. No reenvíes eventos de producción como prueba.
 
 No modificar Secrets, Services ni configuración de Railway cuando falle un
 deployment; conservar los logs del workflow y escalar el fallo al administrador.

@@ -80,6 +80,7 @@ jobs:
 
       - name: Probar tools analíticas y cliente del Core
         run: |
+          node --test scripts/toolRunner.test.js
           pnpm run test:core-client
           pnpm run test:poller
           node scripts/test_calculate_control_charts.js
